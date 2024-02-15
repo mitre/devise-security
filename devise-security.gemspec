@@ -40,6 +40,8 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'logger'
   s.add_development_dependency 'm'
   s.add_development_dependency 'minitest'
+  s.add_development_dependency 'mocha'
+  s.add_development_dependency 'mutex_m'
   s.add_development_dependency 'omniauth'
   s.add_development_dependency 'ostruct'
   s.add_development_dependency 'pry-rescue'
@@ -51,5 +53,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'simplecov-lcov'
   s.add_development_dependency 'solargraph'
   s.add_development_dependency 'solargraph-arc'
-  s.add_development_dependency 'mutex_m'
+  s.add_development_dependency 'timecop'
 end
