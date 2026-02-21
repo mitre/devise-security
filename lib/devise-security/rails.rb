@@ -13,14 +13,8 @@ module DeviseSecurity
       include DeviseSecurity::Controllers::Helpers
     end
 
-    if Rails.version > '5'
-      ActiveSupport::Reloader.to_prepare do
-        DeviseSecurity::Patches.apply
-      end
-    else
-      ActionDispatch::Callbacks.to_prepare do
-        DeviseSecurity::Patches.apply
-      end
+    ActiveSupport::Reloader.to_prepare do
+      DeviseSecurity::Patches.apply
     end
   end
 end

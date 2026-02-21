@@ -102,11 +102,7 @@ module Devise::Models
     # @note called as a +before_save+ hook
     # @return [void]
     def update_password_changed
-      if defined?(will_save_change_to_attribute?)
-        return unless (new_record? || will_save_change_to_encrypted_password?) && !will_save_change_to_password_changed_at?
-      else
-        return unless (new_record? || encrypted_password_changed?) && !password_changed_at_changed?
-      end
+      return unless (new_record? || will_save_change_to_encrypted_password?) && !will_save_change_to_password_changed_at?
 
       self.password_changed_at = Time.zone.now
     end
