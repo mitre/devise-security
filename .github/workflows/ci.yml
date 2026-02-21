@@ -1,4 +1,4 @@
-name: Test Suite
+name: CI
 
 on:
   push:
@@ -11,7 +11,38 @@ on:
     - cron: '0 0 1 * *'
 
 jobs:
-  run-tests:
+  rubocop:
+    name: RuboCop
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+      - name: Run RuboCop
+        run: bundle exec rubocop --format github
+
+  brakeman:
+    name: Brakeman
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+      - name: Run Brakeman
+        run: bundle exec brakeman -p test/dummy -z -q --format sarif --output brakeman.sarif
+      - name: Upload Brakeman results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: brakeman.sarif
+
+  test:
+    name: "Ruby ${{ matrix.ruby }} / Rails ${{ matrix.rails }} / ${{ matrix.orm }}"
+    needs: [rubocop, brakeman]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -47,9 +78,7 @@ jobs:
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.11.0
         if: ${{ matrix.orm == 'mongoid' }}
-      - name:
-          Tests for ORM ${{ matrix.orm }}, Rails ${{ matrix.rails }}, and Ruby
-          ${{ matrix.ruby }}
+      - name: Run tests
         env:
           BUNDLE_GEMFILE: gemfiles/rails_${{ matrix.rails }}.gemfile
           CI: true
@@ -57,7 +86,7 @@ jobs:
         run: |
           bundle exec rake
       - name: Coveralls Parallel
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name:
@@ -66,8 +95,9 @@ jobs:
           parallel: true
           path-to-lcov: ./coverage/lcov/devise-security.lcov
 
-  finish:
-    needs: run-tests
+  coverage:
+    name: Coverage
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Upload coverage to Coveralls
