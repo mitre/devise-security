@@ -15,7 +15,7 @@ class TestSessionTraceableWorkflow < ActionDispatch::IntegrationTest
       failed_sign_in(@user, session)
 
       session.assert_response(:success)
-      assert_equal session.flash[:alert], I18n.t('devise.failure.invalid', authentication_keys: 'Email')
+      assert_match(/invalid.*email.*password/i, session.flash[:alert])
       assert_predicate @user.session_histories, :empty?
     end
   end

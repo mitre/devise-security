@@ -47,7 +47,7 @@ module Devise
           owner: self
         )
 
-        session_history_class.constantize.create!(attrs) && token
+        session_history_class.create!(attrs) && token
       rescue ActiveRecord::ActiveRecordError
         nil
       end
