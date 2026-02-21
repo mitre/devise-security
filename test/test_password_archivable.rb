@@ -16,7 +16,7 @@ class TestPasswordArchivable < ActiveSupport::TestCase
   end
 
   test 'cannot use same password' do
-    user = User.create email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1'
+    user = create(:user)
     assert_raises(ORMInvalidRecordException) { set_password(user, 'Password1') }
   end
 
@@ -29,7 +29,7 @@ class TestPasswordArchivable < ActiveSupport::TestCase
       ActiveSupport::Deprecation.behavior = :raise
     end
 
-    user = User.new email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1'
+    user = build(:user)
     widget = Widget.new(user: user)
     assert_nothing_raised { widget.save }
 
@@ -41,7 +41,7 @@ class TestPasswordArchivable < ActiveSupport::TestCase
   end
 
   test 'does not save an OldPassword if user password was originally nil' do
-    user = User.new(email: generate_unique_email, password: nil, password_confirmation: nil)
+    user = build(:user, password: nil)
     set_password(user, 'Password1')
     assert_equal 0, OldPassword.count
   end
@@ -49,7 +49,7 @@ class TestPasswordArchivable < ActiveSupport::TestCase
   test 'cannot reuse archived passwords' do
     assert_equal 2, Devise.password_archiving_count
 
-    user = User.create! email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1'
+    user = create(:user)
     assert_equal 0, OldPassword.count
     set_password(user, 'Password2')
     assert_equal 1, OldPassword.count
@@ -73,7 +73,7 @@ class TestPasswordArchivable < ActiveSupport::TestCase
       end
     end
 
-    user = User.create email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1'
+    user = create(:user)
 
     assert set_password(user, 'Password2')
 
@@ -91,7 +91,7 @@ class TestPasswordArchivable < ActiveSupport::TestCase
 
     assert_equal 2, Devise.password_archiving_count
 
-    user = User.create! email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1'
+    user = create(:user)
     assert_equal 0, OldPassword.count
     set_password(user, 'Password2')
     assert_equal 1, OldPassword.count

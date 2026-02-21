@@ -16,12 +16,12 @@ class TestSessionLimitable < ActiveSupport::TestCase
   end
 
   test 'check is not skipped by default' do
-    user = User.new(email: generate_unique_email, password: 'password1', password_confirmation: 'password1')
+    user = build(:user)
     assert_not(user.skip_session_limitable?)
   end
 
   test 'default check can be overridden by record instance' do
-    modified_user = ModifiedUser.new(email: generate_unique_email, password: 'password1', password_confirmation: 'password1')
+    modified_user = ModifiedUser.new(email: generate_unique_email, password: 'Password1')
     assert(modified_user.skip_session_limitable?)
   end
 
@@ -35,7 +35,7 @@ class TestSessionLimitable < ActiveSupport::TestCase
   end
 
   test '#update_unique_session_id!(value) updates valid record' do
-    user = User.create! password: 'passWord1', password_confirmation: 'passWord1', email: generate_unique_email
+    user = create(:user)
     assert user.persisted?
     assert_nil user.unique_session_id
     user.update_unique_session_id!('unique_value')
@@ -45,8 +45,8 @@ class TestSessionLimitable < ActiveSupport::TestCase
   end
 
   test '#update_unique_session_id!(value) updates invalid record atomically' do
-    email = generate_unique_email
-    user = User.create! password: 'passWord1', password_confirmation: 'passWord1', email: email
+    user = create(:user)
+    original_email = user.email
     assert user.persisted?
     user.email = ''
 
@@ -54,12 +54,12 @@ class TestSessionLimitable < ActiveSupport::TestCase
     assert_nil user.unique_session_id
     user.update_unique_session_id!('unique_value')
     user.reload
-    assert_equal(email, user.email)
+    assert_equal(original_email, user.email)
     assert_equal('unique_value', user.unique_session_id)
   end
 
   test '#update_unique_session_id!(value) updates updated_at timestamp' do
-    user = User.create! password: 'passWord1', password_confirmation: 'passWord1', email: generate_unique_email
+    user = create(:user)
     original_updated_at = user.updated_at
 
     travel 2.seconds do
@@ -72,7 +72,7 @@ class TestSessionLimitable < ActiveSupport::TestCase
   end
 
   test '#update_unique_session_id!(value) raises an exception on an unpersisted record' do
-    user = User.create
+    user = build(:user)
 
     assert_not user.persisted?
     assert_raises(Devise::Models::Compatibility::NotPersistedError) { user.update_unique_session_id!('unique_value') }

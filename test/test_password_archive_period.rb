@@ -39,7 +39,7 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
     Devise.deny_old_passwords = 2
     Devise.password_archiving_count = 5
 
-    user = User.create!(email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1')
+    user = create(:user)
     set_password(user, 'Password2')
 
     # Password1 is within last 2 — denied
@@ -58,7 +58,7 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
   test 'period set: password used within time window is denied' do
     Devise.deny_old_passwords_period = 3.months
 
-    user = User.create!(email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1')
+    user = create(:user)
 
     travel 1.month do
       set_password(user, 'Password2')
@@ -71,7 +71,7 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
   test 'period set: password used outside time window is allowed' do
     Devise.deny_old_passwords_period = 3.months
 
-    user = User.create!(email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1')
+    user = create(:user)
     set_password(user, 'Password2')
 
     travel 6.months do
@@ -83,7 +83,7 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
   test 'period set: no old passwords allows new password' do
     Devise.deny_old_passwords_period = 3.months
 
-    user = User.create!(email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1')
+    user = create(:user)
 
     # Only the current password exists (no archives yet), changing to new is fine
     assert set_password(user, 'Password2')
@@ -92,7 +92,7 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
   test 'period set: current password is still denied even without archives' do
     Devise.deny_old_passwords_period = 3.months
 
-    user = User.create!(email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1')
+    user = create(:user)
 
     # Reusing current password is always denied (encrypted_password_was check)
     assert_raises(ORMInvalidRecordException) { set_password(user, 'Password1') }
@@ -103,7 +103,7 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
   test 'period as Proc: resolved at call time with instance_exec' do
     User.deny_old_passwords_period = Proc.new { 3.months }
 
-    user = User.create!(email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1')
+    user = create(:user)
     set_password(user, 'Password2')
 
     travel 1.month do
@@ -118,7 +118,7 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
   end
 
   test 'period Proc has access to instance via self' do
-    user = User.new
+    user = build(:user)
     User.deny_old_passwords_period = Proc.new { respond_to?(:email) ? 6.months : nil }
 
     assert_equal 6.months, user.deny_old_passwords_period
@@ -132,7 +132,7 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
     Devise.deny_old_passwords = 2
     Devise.deny_old_passwords_period = 1.month
 
-    user = User.create!(email: generate_unique_email, password: 'Password1', password_confirmation: 'Password1')
+    user = create(:user)
     set_password(user, 'Password2')
     set_password(user, 'Password3')
     set_password(user, 'Password4')

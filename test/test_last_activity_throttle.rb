@@ -13,7 +13,7 @@ require 'test_helper'
 class TestLastActivityThrottle < ActiveSupport::TestCase
   setup do
     @original_interval = Devise.last_activity_update_interval
-    @user = User.create!(email: 'throttle@example.com', password: 'passWord1')
+    @user = create(:user)
   end
 
   teardown do

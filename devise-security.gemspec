@@ -35,6 +35,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'bundler'
   s.add_development_dependency 'byebug'
   s.add_development_dependency 'database_cleaner'
+  s.add_development_dependency 'factory_bot', '>= 6.0'
   s.add_development_dependency 'easy_captcha'
   s.add_development_dependency 'i18n-tasks'
   s.add_development_dependency 'logger'

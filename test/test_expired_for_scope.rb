@@ -10,21 +10,21 @@ require 'test_helper'
 # - Users whose delete window hasn't elapsed must be excluded.
 class TestExpiredForScope < ActiveSupport::TestCase
   test 'expired_for includes user with expired_at older than delete_expired_after' do
-    user = User.create!(email: 'expired_manual@example.com', password: 'passWord1')
+    user = create(:user)
     user.update_columns(expired_at: (User.delete_expired_after + 1.day).ago)
 
     assert_includes User.expired_for, user
   end
 
   test 'expired_for excludes user with expired_at within delete_expired_after window' do
-    user = User.create!(email: 'expired_recent@example.com', password: 'passWord1')
+    user = create(:user)
     user.update_columns(expired_at: 1.day.ago)
 
     assert_not_includes User.expired_for, user
   end
 
   test 'expired_for includes inactivity-expired user with nil expired_at' do
-    user = User.create!(email: 'expired_inactive@example.com', password: 'passWord1')
+    user = create(:user)
     user.update_columns(
       last_activity_at: (User.expire_after + User.delete_expired_after + 1.day).ago,
       expired_at: nil
@@ -34,7 +34,7 @@ class TestExpiredForScope < ActiveSupport::TestCase
   end
 
   test 'expired_for excludes inactivity-expired user whose delete window has not elapsed' do
-    user = User.create!(email: 'expired_fresh_inactive@example.com', password: 'passWord1')
+    user = create(:user)
     user.update_columns(
       last_activity_at: (User.expire_after + 1.day).ago,
       expired_at: nil
@@ -44,14 +44,14 @@ class TestExpiredForScope < ActiveSupport::TestCase
   end
 
   test 'expired_for excludes fresh user with no activity and no expired_at' do
-    user = User.create!(email: 'fresh_user@example.com', password: 'passWord1')
+    user = create(:user)
     user.update_columns(last_activity_at: nil, expired_at: nil)
 
     assert_not_includes User.expired_for, user
   end
 
   test 'delete_all_expired removes inactivity-expired users past delete window' do
-    user = User.create!(email: 'delete_inactive@example.com', password: 'passWord1')
+    user = create(:user)
     user.update_columns(
       last_activity_at: (User.expire_after + User.delete_expired_after + 1.day).ago,
       expired_at: nil

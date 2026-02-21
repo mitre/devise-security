@@ -11,15 +11,12 @@ module ActiveSupport
       "192.168.1.#{self.class.ip_count}"
     end
 
-    mattr_accessor :email_count
     def generate_unique_username
-      self.class.email_count ||= 0
-      self.class.email_count += 1
-      "test#{self.class.email_count}"
+      generate(:username)
     end
 
     def generate_unique_email
-      "#{generate_unique_username}@example.com"
+      generate(:email)
     end
 
     def valid_attributes(attributes = {})
@@ -39,11 +36,13 @@ module ActiveSupport
     end
 
     def new_user(attributes = {}, klass = User)
-      klass.new(valid_attributes(attributes))
+      factory_name = klass.name.underscore.to_sym
+      build(factory_name, **valid_attributes(attributes))
     end
 
     def create_user(attributes = {}, klass = User)
-      klass.create!(valid_attributes(attributes))
+      factory_name = klass.name.underscore.to_sym
+      create(factory_name, **valid_attributes(attributes))
     end
 
     def create_traceable_user(attributes = {})

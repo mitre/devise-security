@@ -16,7 +16,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
   # ── deny_old_passwords as Proc ───────────────────────────────
 
   test 'deny_old_passwords Proc is resolved at call time' do
-    user = User.new
+    user = build(:user)
     call_count = 0
     User.deny_old_passwords = Proc.new { call_count += 1; 3 }
 
@@ -28,7 +28,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
   end
 
   test 'deny_old_passwords Proc has access to instance via self' do
-    user = User.new
+    user = build(:user)
     User.deny_old_passwords = Proc.new { respond_to?(:email) ? 5 : 0 }
 
     assert_equal 5, user.deny_old_passwords
@@ -37,7 +37,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
   end
 
   test 'deny_old_passwords Proc returning true denies all old passwords' do
-    user = User.new
+    user = build(:user)
     User.deny_old_passwords = Proc.new { true }
 
     assert_equal true, user.deny_old_passwords
@@ -49,7 +49,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
   # ── password_archiving_count as Proc ─────────────────────────
 
   test 'archive_count Proc is resolved at call time' do
-    user = User.new
+    user = build(:user)
     User.password_archiving_count = Proc.new { 7 }
 
     assert_equal 7, user.archive_count
@@ -58,7 +58,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
   end
 
   test 'archive_count Proc has access to instance via self' do
-    user = User.new
+    user = build(:user)
     User.password_archiving_count = Proc.new { respond_to?(:email) ? 4 : 1 }
 
     assert_equal 4, user.archive_count
@@ -69,7 +69,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
   # ── Integration: Procs flow through max_old_passwords ────────
 
   test 'max_old_passwords uses resolved Proc value from deny_old_passwords' do
-    user = User.new
+    user = build(:user)
     User.deny_old_passwords = Proc.new { 4 }
 
     assert_equal 4, user.max_old_passwords
@@ -80,7 +80,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
   # ── Regression: non-Proc configs still work ──────────────────
 
   test 'deny_old_passwords integer config still works' do
-    user = User.new
+    user = build(:user)
     User.deny_old_passwords = 3
 
     assert_equal 3, user.deny_old_passwords
@@ -89,7 +89,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
   end
 
   test 'deny_old_passwords boolean true config still works' do
-    user = User.new
+    user = build(:user)
     User.deny_old_passwords = true
 
     assert_equal true, user.deny_old_passwords

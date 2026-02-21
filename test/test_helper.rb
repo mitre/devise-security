@@ -40,6 +40,11 @@ require 'minitest/autorun'
 require 'rails/test_help'
 require 'devise-security'
 require 'database_cleaner'
+require 'factory_bot'
+
+# Configure FactoryBot for gem test suite (not Rails app)
+FactoryBot.definition_file_paths = [File.expand_path('factories', __dir__)]
+FactoryBot.find_definitions
 require "orm/#{DEVISE_ORM}"
 
 # Controller testing is the way that Devise itself tests the functionality of
@@ -53,6 +58,8 @@ Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].sort.each { |f| require f }
 
 # Shared test helpers available to all test cases.
 class ActiveSupport::TestCase
+  include FactoryBot::Syntax::Methods
+
   # Clear Devise class-level instance variables that override global config.
   # Useful in teardown/ensure blocks to restore clean state between tests.
   #

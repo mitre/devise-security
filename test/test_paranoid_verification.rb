@@ -11,18 +11,18 @@ class TestParanoidVerification < ActiveSupport::TestCase
   end
 
   test 'need to paranoid verify if code present' do
-    user = User.new
+    user = build(:user)
     user.generate_paranoid_code
     assert(user.need_paranoid_verification?)
   end
 
   test 'no need to paranoid verify if no code' do
-    user = User.new
+    user = build(:user)
     assert_not(user.need_paranoid_verification?)
   end
 
   test 'generate code' do
-    user = User.new
+    user = build(:user)
     user.generate_paranoid_code
     assert_equal(0, user.paranoid_verification_attempt)
     user.verify_code('wrong')
@@ -32,7 +32,7 @@ class TestParanoidVerification < ActiveSupport::TestCase
   end
 
   test 'generate code must reset attempt counter' do
-    user = User.new
+    user = build(:user)
     user.generate_paranoid_code
     # default generator generates 5 char string
     assert_equal(user.paranoid_verification_code.class, String)
@@ -40,7 +40,7 @@ class TestParanoidVerification < ActiveSupport::TestCase
   end
 
   test 'when code match upon verify code, should mark record that it\'s no loger needed to verify' do
-    user = User.new(paranoid_verification_code: 'abcde')
+    user = build(:user, paranoid_verification_code: 'abcde')
 
     assert(user.need_paranoid_verification?)
     user.verify_code('abcde')
@@ -48,7 +48,7 @@ class TestParanoidVerification < ActiveSupport::TestCase
   end
 
   test 'when code match upon verify code, should no longer need verification' do
-    user = User.new(paranoid_verification_code: 'abcde')
+    user = build(:user, paranoid_verification_code: 'abcde')
 
     assert(user.need_paranoid_verification?)
     user.verify_code('abcde')
@@ -56,19 +56,19 @@ class TestParanoidVerification < ActiveSupport::TestCase
   end
 
   test 'when code match upon verification code, should set when verification was accepted' do
-    user = User.new(paranoid_verification_code: 'abcde')
+    user = build(:user, paranoid_verification_code: 'abcde')
     user.verify_code('abcde')
     assert_in_delta(4, Time.now.to_i, user.paranoid_verified_at.to_i)
   end
 
   test 'when code not match upon verify code, should still need verification' do
-    user = User.new(paranoid_verification_code: 'abcde')
+    user = build(:user, paranoid_verification_code: 'abcde')
     user.verify_code('wrong')
     assert(user.need_paranoid_verification?)
   end
 
   test 'when code not match upon verification code, should not set paranoid_verified_at' do
-    user = User.new(paranoid_verification_code: 'abcde')
+    user = build(:user, paranoid_verification_code: 'abcde')
     user.verify_code('wrong')
     assert_nil(user.paranoid_verified_at)
   end
@@ -77,7 +77,7 @@ class TestParanoidVerification < ActiveSupport::TestCase
     original_regenerate = Devise.paranoid_code_regenerate_after_attempt
     Devise.paranoid_code_regenerate_after_attempt = 2
 
-    user = User.create(paranoid_verification_code: 'abcde')
+    user = create(:user, paranoid_verification_code: 'abcde')
     user.verify_code('wrong')
     assert_equal 'abcde', user.paranoid_verification_code
     user.verify_code('wrong-again')
@@ -90,7 +90,7 @@ class TestParanoidVerification < ActiveSupport::TestCase
     original_regenerate = Devise.paranoid_code_regenerate_after_attempt
     Devise.paranoid_code_regenerate_after_attempt = 3
 
-    user = User.create(paranoid_verification_code: 'abcde')
+    user = create(:user, paranoid_verification_code: 'abcde')
     user.verify_code('wrong')
     assert_equal 1, user.paranoid_verification_attempt
     user.verify_code('wrong-again')
@@ -102,7 +102,7 @@ class TestParanoidVerification < ActiveSupport::TestCase
   end
 
   test 'by default paranoid code regenerate should have 10 attempts' do
-    user = User.new(paranoid_verification_code: 'abcde')
+    user = build(:user, paranoid_verification_code: 'abcde')
     assert_equal 10, user.paranoid_attempts_remaining
   end
 
@@ -110,7 +110,7 @@ class TestParanoidVerification < ActiveSupport::TestCase
     original_regenerate = Devise.paranoid_code_regenerate_after_attempt
     Devise.paranoid_code_regenerate_after_attempt = 2
 
-    user = User.create(paranoid_verification_code: 'abcde')
+    user = create(:user, paranoid_verification_code: 'abcde')
     assert_equal 2, user.paranoid_attempts_remaining
 
     user.verify_code('WRONG!')
@@ -123,7 +123,7 @@ class TestParanoidVerification < ActiveSupport::TestCase
     original_regenerate = Devise.paranoid_code_regenerate_after_attempt
     Devise.paranoid_code_regenerate_after_attempt = 1
 
-    user = User.create(paranoid_verification_code: 'abcde')
+    user = create(:user, paranoid_verification_code: 'abcde')
     user.verify_code('wrong') # at this point code was regenerated
     assert_equal Devise.paranoid_code_regenerate_after_attempt, user.paranoid_attempts_remaining
 
