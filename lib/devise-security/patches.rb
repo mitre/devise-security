@@ -4,6 +4,7 @@ module DeviseSecurity
   module Patches
     autoload :ControllerCaptcha, 'devise-security/patches/controller_captcha'
     autoload :ControllerSecurityQuestion, 'devise-security/patches/controller_security_question'
+    autoload :SecureValidatableControllerInfo, 'devise-security/patches/secure_validatable_controller_info'
 
     class << self
       # rubocop:disable Metrics/AbcSize
@@ -20,6 +21,8 @@ module DeviseSecurity
 
         Devise::RegistrationsController.include(Patches::ControllerCaptcha) if Devise.captcha_for_sign_up
         Devise::SessionsController.include(Patches::ControllerCaptcha) if Devise.captcha_for_sign_in
+
+        DeviseController.prepend(Patches::SecureValidatableControllerInfo)
       end
       # rubocop:enable Metrics/AbcSize
       # rubocop:enable Metrics/CyclomaticComplexity
