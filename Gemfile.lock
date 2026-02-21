@@ -200,6 +200,8 @@ GEM
     nio4r (2.7.5)
     nokogiri (1.19.1-arm64-darwin)
       racc (~> 1.4)
+    nokogiri (1.19.1-x86_64-linux-gnu)
+      racc (~> 1.4)
     observer (0.1.2)
     omniauth (2.1.4)
       hashie (>= 3.4.6)
@@ -213,6 +215,7 @@ GEM
       ast (~> 2.4.1)
       racc
     pg (1.6.3-arm64-darwin)
+    pg (1.6.3-x86_64-linux)
     pkg-config (1.6.5)
     prism (1.9.0)
     pry (0.16.0)
@@ -380,6 +383,7 @@ GEM
 
 PLATFORMS
   arm64-darwin-25
+  x86_64-linux
 
 DEPENDENCIES
   appraisal
