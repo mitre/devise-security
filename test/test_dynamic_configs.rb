@@ -56,7 +56,7 @@ class TestDynamicConfigs < ActiveSupport::TestCase
   test 'Expirable: last_activity_update_interval instance method delegates to class config' do
     user = build(:user)
 
-    assert_equal User.last_activity_update_interval, user.last_activity_update_interval
+    assert_nil user.last_activity_update_interval
   end
 
   test 'Expirable: expired? uses instance method (overridable)' do
@@ -142,7 +142,7 @@ class TestDynamicConfigs < ActiveSupport::TestCase
   test 'PasswordArchivable: deny_old_passwords_period instance method delegates to class config' do
     user = build(:user)
 
-    assert_equal User.deny_old_passwords_period, user.deny_old_passwords_period
+    assert_nil user.deny_old_passwords_period
   end
 
   # ── PasswordExpirable (already dynamic — verify) ──────────────

@@ -126,12 +126,23 @@ module Devise
         #   (defaults to +delete_expired_after+)
         # @return [ActiveRecord::Relation]
         def expired_for(time = delete_expired_after)
-          where(
-            'expired_at < :cutoff OR ' \
-            '(expired_at IS NULL AND last_activity_at IS NOT NULL AND last_activity_at < :inactivity_cutoff)',
-            cutoff: time.ago,
-            inactivity_cutoff: (expire_after + time).ago
-          )
+          cutoff = time.ago
+          inactivity_cutoff = (expire_after + time).ago
+
+          if DEVISE_ORM == :active_record
+            where(
+              'expired_at < :cutoff OR ' \
+              '(expired_at IS NULL AND last_activity_at IS NOT NULL AND last_activity_at < :inactivity_cutoff)',
+              cutoff: cutoff,
+              inactivity_cutoff: inactivity_cutoff
+            )
+          else
+            # Mongoid: use hash-based criteria
+            any_of(
+              { expired_at: { :$lt => cutoff } },
+              { expired_at: nil, last_activity_at: { :$ne => nil, :$lt => inactivity_cutoff } }
+            )
+          end
         end
 
         # Sample method for daily cron to delete all expired entries after a
