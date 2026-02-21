@@ -29,9 +29,10 @@ module Devise
       def update_unique_session_id!(unique_session_id)
         raise Devise::Models::Compatibility::NotPersistedError, 'cannot update a new record' unless persisted?
 
-        update_attribute_without_validatons_or_callbacks(:unique_session_id, unique_session_id).tap do
-          Rails.logger.debug { "[devise-security][session_limitable] unique_session_id=#{unique_session_id}" }
-        end
+        attrs = { unique_session_id: unique_session_id }
+        attrs[:updated_at] = Time.current if respond_to?(:updated_at)
+        self.class.where(id: id).update_all(attrs)
+        Rails.logger.debug { "[devise-security][session_limitable] unique_session_id=#{unique_session_id}" }
       end
 
       # Check whether the user is allowed to authenticate based on active session count.

@@ -58,6 +58,19 @@ class TestSessionLimitable < ActiveSupport::TestCase
     assert_equal('unique_value', user.unique_session_id)
   end
 
+  test '#update_unique_session_id!(value) updates updated_at timestamp' do
+    user = User.create! password: 'passWord1', password_confirmation: 'passWord1', email: generate_unique_email
+    original_updated_at = user.updated_at
+
+    travel 2.seconds do
+      user.update_unique_session_id!('unique_value')
+      user.reload
+
+      assert user.updated_at > original_updated_at,
+             'updated_at should advance when unique_session_id is set'
+    end
+  end
+
   test '#update_unique_session_id!(value) raises an exception on an unpersisted record' do
     user = User.create
 
