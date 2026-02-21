@@ -32,6 +32,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'devise', '>= 4.8.1'
 
   s.add_development_dependency 'appraisal'
+  s.add_development_dependency 'brakeman'
   s.add_development_dependency 'bundler'
   s.add_development_dependency 'byebug'
   s.add_development_dependency 'database_cleaner'
