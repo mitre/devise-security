@@ -8,7 +8,8 @@ Warden::Manager.after_set_user except: :fetch do |record, warden, options|
   scope = options[:scope]
   if record.devise_modules.include?(:session_traceable) &&
      warden.authenticated?(scope) &&
-     !record.skip_session_traceable?
+     !record.skip_session_traceable? &&
+     !warden.request.env['devise.skip_session_traceable']
     opts = {
       ip_address: warden.request.remote_ip,
       user_agent: warden.request.headers['User-Agent']
