@@ -13,6 +13,9 @@ module Devise
     # == Configuration
     # * +deny_old_passwords+ - +Integer+ count of old passwords to deny,
     #   +true+ to deny all archived, or +false+ to disable (default: +false+)
+    # * +deny_old_passwords_period+ - +ActiveSupport::Duration+ time window
+    #   for denying reuse (e.g. +3.months+). Takes precedence over count.
+    #   +nil+ (default) disables time-based checking.
     # * +password_archiving_count+ - max number of old passwords to store
     #
     # @see OldPassword the model storing archived password hashes
@@ -55,17 +58,29 @@ module Devise
       end
 
       # Check if the new password matches any previously used password.
-      # Compares against the most recent +max_old_passwords+ entries plus
-      # the current (about to be replaced) encrypted password.
+      # When +deny_old_passwords_period+ is set, checks passwords archived
+      # within that time window (takes precedence over count-based checking).
+      # Otherwise falls back to count-based checking via +max_old_passwords+.
+      #
+      # Always includes the current (about-to-be-replaced) encrypted password.
       #
       # @return [true] if the new password was used previously
       # @return [false] if reuse checking is disabled or no match found
       def password_archive_included?
-        return false unless max_old_passwords.positive?
+        period = deny_old_passwords_period
 
-        old_passwords_including_cur_change = old_passwords.reorder(created_at: :desc).limit(max_old_passwords).pluck(:encrypted_password)
-        old_passwords_including_cur_change << encrypted_password_was # include most recent change in list, but don't save it yet!
-        old_passwords_including_cur_change.any? do |old_password|
+        if period
+          # Time-based: check passwords created within the period
+          old_passwords_to_check = old_passwords.where('created_at > ?', period.ago).pluck(:encrypted_password)
+        else
+          # Count-based: existing logic
+          return false unless max_old_passwords.positive?
+
+          old_passwords_to_check = old_passwords.reorder(created_at: :desc).limit(max_old_passwords).pluck(:encrypted_password)
+        end
+
+        old_passwords_to_check << encrypted_password_was # include most recent change in list, but don't save it yet!
+        old_passwords_to_check.any? do |old_password|
           # NOTE: we deliberately do not do mass assignment here so that users that
           #   rely on `protected_attributes_continued` gem can still use this extension.
           #   See issue #68
@@ -91,6 +106,17 @@ module Devise
         self.class.deny_old_passwords = count
       end
 
+      # Time period for denying old password reuse.
+      # Override in your model for per-record dynamic behavior.
+      # Supports +Proc+ values — resolved via +instance_exec+ so the Proc
+      # has access to the model instance (e.g., for role-based logic).
+      #
+      # @return [ActiveSupport::Duration, nil] time period, or +nil+ to use count-based
+      def deny_old_passwords_period
+        value = self.class.deny_old_passwords_period
+        value.is_a?(Proc) ? instance_exec(&value) : value
+      end
+
       # Number of old passwords to archive.
       # Override in your model for per-record dynamic behavior.
       # Supports +Proc+ values — resolved via +instance_exec+.
@@ -104,24 +130,30 @@ module Devise
       private
 
       # Archive the current encrypted password before save and prune excess entries.
-      # When archiving is disabled (+max_old_passwords+ is 0), destroys all archives.
+      # When archiving is disabled (+max_old_passwords+ is 0 and no period set),
+      # destroys all archives. When +deny_old_passwords_period+ is set, archives
+      # are always created (even if count-based checking is disabled).
       #
       # @note Checks for an existing archive entry to avoid duplicates caused by
       #   Mongoid re-triggering callbacks when adding an old password.
       # @return [void]
       def archive_password
-        if max_old_passwords.positive?
+        if max_old_passwords.positive? || deny_old_passwords_period
           return true if old_passwords.where(encrypted_password: encrypted_password_was).exists?
 
           old_passwords.create!(encrypted_password: encrypted_password_was) if encrypted_password_was.present?
-          old_passwords.reorder(created_at: :desc).offset(max_old_passwords).destroy_all
+
+          # When period-based checking is active, prune by archive_count (storage limit)
+          # rather than max_old_passwords (denial count) to retain enough history.
+          prune_limit = deny_old_passwords_period ? [archive_count, max_old_passwords].max : max_old_passwords
+          old_passwords.reorder(created_at: :desc).offset(prune_limit).destroy_all if prune_limit.positive?
         else
           old_passwords.destroy_all
         end
       end
 
       class_methods do
-        ::Devise::Models.config(self, :password_archiving_count, :deny_old_passwords)
+        ::Devise::Models.config(self, :password_archiving_count, :deny_old_passwords, :deny_old_passwords_period)
       end
     end
   end

@@ -135,6 +135,11 @@ class TestDynamicConfigs < ActiveSupport::TestCase
     assert_equal User.password_archiving_count, user.archive_count
   end
 
+  test 'PasswordArchivable: deny_old_passwords_period instance method delegates to class config' do
+    user = User.new
+    assert_equal User.deny_old_passwords_period, user.deny_old_passwords_period
+  end
+
   # ── PasswordExpirable (already dynamic — verify) ──────────────
 
   test 'PasswordExpirable: expire_password_after instance method exists and delegates' do
