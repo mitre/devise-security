@@ -1,0 +1,136 @@
+name: Test Suite - Nightly (Experimental)
+
+on:
+  schedule:
+    # Daily at 2am UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  ruby-head:
+    name: "ruby-head / AR / Rails ${{ matrix.rails }}"
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        orm: [active_record]
+        rails: ["7.0", "7.1", "7.2", "8.0"]
+        ruby: [head]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            **/bundle
+          key:
+            bundle-use-ruby-${{ matrix.ruby }}-rails-${{ matrix.rails }}-orm-${{
+            matrix.orm }}-gemfile-${{
+            hashFiles(format('**/gemfiles/rails_{0}.gemfile', matrix.rails))
+            }}-gemspec-${{ hashFiles('**/devise-security.gemspec') }}
+      - name: bundle install
+        env:
+          BUNDLE_GEMFILE: gemfiles/rails_${{ matrix.rails }}.gemfile
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmagickwand-dev
+          bundle config path vendor/bundle
+          bundle install
+      - name:
+          Tests for ORM ${{ matrix.orm }}, Rails ${{ matrix.rails }}, and Ruby
+          ${{ matrix.ruby }}
+        env:
+          BUNDLE_GEMFILE: gemfiles/rails_${{ matrix.rails }}.gemfile
+          CI: true
+          DEVISE_ORM: ${{ matrix.orm }}
+        run: |
+          bundle exec rake
+
+  rails-head:
+    name: "rails-head / AR / Ruby ${{ matrix.ruby }}"
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        orm: [active_record]
+        rails: [main]
+        ruby: ["3.3", "3.4"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            **/bundle
+          key:
+            bundle-use-ruby-${{ matrix.ruby }}-rails-main-orm-${{
+            matrix.orm }}-gemfile-${{
+            hashFiles('**/gemfiles/rails_main.gemfile')
+            }}-gemspec-${{ hashFiles('**/devise-security.gemspec') }}
+      - name: bundle install
+        env:
+          BUNDLE_GEMFILE: gemfiles/rails_main.gemfile
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmagickwand-dev
+          bundle config path vendor/bundle
+          bundle install
+      - name:
+          Tests for ORM ${{ matrix.orm }}, Rails main, and Ruby
+          ${{ matrix.ruby }}
+        env:
+          BUNDLE_GEMFILE: gemfiles/rails_main.gemfile
+          CI: true
+          DEVISE_ORM: ${{ matrix.orm }}
+        run: |
+          bundle exec rake
+
+  mongoid-ruby-head:
+    name: "mongoid + ruby-head / Rails ${{ matrix.rails }}"
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        orm: [mongoid]
+        rails: ["7.0", "7.1", "7.2", "8.0"]
+        ruby: [head]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            **/bundle
+          key:
+            bundle-use-ruby-${{ matrix.ruby }}-rails-${{ matrix.rails }}-orm-${{
+            matrix.orm }}-gemfile-${{
+            hashFiles(format('**/gemfiles/rails_{0}.gemfile', matrix.rails))
+            }}-gemspec-${{ hashFiles('**/devise-security.gemspec') }}
+      - name: bundle install
+        env:
+          BUNDLE_GEMFILE: gemfiles/rails_${{ matrix.rails }}.gemfile
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmagickwand-dev
+          bundle config path vendor/bundle
+          bundle install
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.11.0
+      - name:
+          Tests for ORM ${{ matrix.orm }}, Rails ${{ matrix.rails }}, and Ruby
+          ${{ matrix.ruby }}
+        env:
+          BUNDLE_GEMFILE: gemfiles/rails_${{ matrix.rails }}.gemfile
+          CI: true
+          DEVISE_ORM: ${{ matrix.orm }}
+        run: |
+          bundle exec rake
