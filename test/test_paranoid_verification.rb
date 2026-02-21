@@ -137,6 +137,29 @@ class TestParanoidVerification < ActiveSupport::TestCase
     Devise.paranoid_code_regenerate_after_attempt = original_regenerate
   end
 
+  test 'verify_code returns true on correct code' do
+    user = create(:user, paranoid_verification_code: 'abcde')
+
+    assert user.verify_code('abcde')
+  end
+
+  test 'verify_code returns false on wrong code' do
+    user = create(:user, paranoid_verification_code: 'abcde')
+
+    assert_not user.verify_code('wrong')
+  end
+
+  test 'verify_code returns false when max attempts reached and code regenerated' do
+    original_regenerate = Devise.paranoid_code_regenerate_after_attempt
+    Devise.paranoid_code_regenerate_after_attempt = 1
+
+    user = create(:user, paranoid_verification_code: 'abcde')
+
+    assert_not user.verify_code('wrong')
+  ensure
+    Devise.paranoid_code_regenerate_after_attempt = original_regenerate
+  end
+
   test 'when code not match upon verification code too many times, reset paranoid_attempts_remaining' do
     original_regenerate = Devise.paranoid_code_regenerate_after_attempt
     Devise.paranoid_code_regenerate_after_attempt = 1

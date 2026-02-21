@@ -32,7 +32,7 @@ class TestPasswordArchivable < ActiveSupport::TestCase
     user = build(:user)
     widget = Widget.new(user: user)
     assert_nothing_raised { widget.save }
-
+  ensure
     if Rails.gem_version >= Gem::Version.new('7.1')
       Rails.application.deprecators.behavior = old_behavior
     else
@@ -86,6 +86,35 @@ class TestPasswordArchivable < ActiveSupport::TestCase
     assert_raises(ORMInvalidRecordException) { set_password(user, 'Password1') }
   ensure
     User.send(:remove_method, :archive_count)
+  end
+
+  test 'max_old_passwords returns numeric value when deny_old_passwords is an integer' do
+    user = build(:user)
+    user.define_singleton_method(:deny_old_passwords) { 5 }
+
+    assert_equal 5, user.max_old_passwords
+  end
+
+  test 'max_old_passwords returns 0 when deny_old_passwords is false' do
+    user = build(:user)
+    user.define_singleton_method(:deny_old_passwords) { false }
+
+    assert_equal 0, user.max_old_passwords
+  end
+
+  test 'archive_passwords clears all old passwords when deny_old_passwords is false' do
+    Devise.deny_old_passwords = true
+    user = create(:user)
+    set_password(user, 'Password2')
+
+    assert_operator OldPassword.count, :>, 0
+
+    Devise.deny_old_passwords = false
+    set_password(user, 'Password3')
+
+    assert_equal 0, user.old_passwords.count
+  ensure
+    Devise.deny_old_passwords = true
   end
 
   test 'default sort orders do not affect archiving' do

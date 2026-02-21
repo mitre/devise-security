@@ -54,6 +54,22 @@ class Devise::ParanoidVerificationCodeControllerTest < ActionController::TestCas
     assert_redirected_to :root
   end
 
+  test 'update with wrong code re-renders show with error' do
+    patch(
+      :update,
+      params: {
+        user: {
+          paranoid_verification_code: 'wrong_code'
+        }
+      }
+    )
+
+    assert_nil flash[:notice]
+    assert_predicate @user.reload, :need_paranoid_verification?
+    assert_template :show
+    assert assigns(:user).errors[:paranoid_verification_code].any?
+  end
+
   test 'update paranoid_verification_code with default format' do
     patch(
       :update,

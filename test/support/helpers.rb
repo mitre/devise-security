@@ -28,13 +28,6 @@ module ActiveSupport
       }.update(attributes)
     end
 
-    def valid_new_attributes(attributes = {})
-      generate_unique_username
-      valid_attributes({
-                         password_confirmation: 'Password1'
-                       }).update(attributes)
-    end
-
     def new_user(attributes = {}, klass = User)
       factory_name = klass.name.underscore.to_sym
       build(factory_name, **valid_attributes(attributes))
@@ -61,20 +54,10 @@ module ActiveSupport
         old_values[key] = object.send key
         object.send :"#{key}=", value
       end
-      clear_cached_variables(new_values)
       yield
     ensure
-      clear_cached_variables(new_values)
       old_values.each do |key, value|
         object.send :"#{key}=", value
-      end
-    end
-
-    def clear_cached_variables(options)
-      return unless options.key?(:case_insensitive_keys) || options.key?(:strip_whitespace_keys)
-
-      Devise.mappings.each_value do |mapping|
-        mapping.to.instance_variable_set(:@devise_parameter_filter, nil)
       end
     end
   end

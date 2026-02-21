@@ -38,6 +38,46 @@ class TestWithCaptcha < ActionDispatch::IntegrationTest
   end
 end
 
+# Unit tests for helper methods in DeviseSecurity::Controllers::Helpers
+class TestHelperMethods < ActiveSupport::TestCase
+  require 'ostruct'
+
+  # Minimal class that can include Helpers without triggering before_action
+  class FakeController
+    def self.before_action(*); end
+    include DeviseSecurity::Controllers::Helpers
+  end
+
+  setup do
+    @helper = FakeController.new
+  end
+
+  test 'init_recover_password_captcha includes RecoverPasswordCaptcha module' do
+    klass = Class.new(FakeController)
+    klass.init_recover_password_captcha
+
+    assert_operator klass, :<, DeviseSecurity::Controllers::Helpers::RecoverPasswordCaptcha
+  end
+
+  test 'valid_captcha_or_security_question? returns true when security question matches' do
+    resource = OpenStruct.new(security_question_answer: 'blue')
+
+    assert @helper.valid_captcha_or_security_question?(resource, { security_question_answer: 'blue' })
+  end
+
+  test 'valid_captcha_or_security_question? returns false when nothing matches' do
+    resource = OpenStruct.new(security_question_answer: 'blue')
+
+    assert_not @helper.valid_captcha_or_security_question?(resource, { security_question_answer: 'red' })
+  end
+
+  test 'valid_captcha_or_security_question? returns false when answer is blank' do
+    resource = OpenStruct.new(security_question_answer: nil)
+
+    assert_not @helper.valid_captcha_or_security_question?(resource, { security_question_answer: nil })
+  end
+end
+
 # These tests interact with the Devise::SessionsController, which does not have the necessary patches for Captcha
 # included
 class TestWithoutCaptcha < ActionDispatch::IntegrationTest
