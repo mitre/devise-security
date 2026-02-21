@@ -12,7 +12,7 @@ require 'test_helper'
 # After the fix, `validators_on(:password)` must return both the LengthValidator
 # and the PasswordComplexityValidator (or whichever class is configured).
 class TestPasswordValidatorsDiscoverable < ActiveSupport::TestCase
-  class User < ApplicationRecord
+  class User < ApplicationUserRecord
     devise :database_authenticatable, :secure_validatable
     include ::Mongoid::Mappings if DEVISE_ORM == :mongoid
   end
