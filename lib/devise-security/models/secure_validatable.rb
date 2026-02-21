@@ -2,6 +2,8 @@
 
 require_relative 'compatibility'
 require_relative '../validators/password_complexity_validator'
+require_relative '../validators/password_length_validator'
+require_relative '../validators/password_complexity_delegator'
 
 module Devise
   module Models
@@ -36,8 +38,19 @@ module Devise
         base.extend ClassMethods
         assert_secure_validations_api!(base)
 
+        # Devise 5+ only defines attr_reader :current_password.
+        # Add a writer so the email-change validation can accept it.
+        unless base.method_defined?(:current_password=)
+          base.class_eval { attr_writer :current_password }
+        end
+
         base.class_eval do
-          already_validated_email = false
+          # Track whether email uniqueness is already handled — either by a
+          # pre-existing validator on the model (any scope) or by the one
+          # secure_validatable adds below. This prevents the fallback block
+          # (when +:validatable+ is absent) from adding a duplicate.
+          # See: https://github.com/devise-security/devise-security/issues/448
+          already_validated_email = login_attribute.to_s == 'email' && uniqueness_validation_of_login?
 
           # validate login in a strict way if not yet validated
           unless uniqueness_validation_of_login?
@@ -49,7 +62,7 @@ module Devise
                                        },
                                        if: validation_condition
 
-            already_validated_email = login_attribute.to_s == 'email'
+            already_validated_email = true if login_attribute.to_s == 'email'
           end
 
           unless devise_validation_enabled?
@@ -59,12 +72,13 @@ module Devise
             validates_presence_of :password, if: :password_required?
             validates_confirmation_of :password, if: :password_required?
 
-            validate if: :password_required? do |record|
-              validates_with ActiveModel::Validations::LengthValidator,
-                             attributes: :password,
-                             allow_blank: true,
-                             in: record.password_length
-            end
+            # Use wrapper validator so LengthValidator is discoverable via
+            # validators_on(:password) while still reading password_length
+            # from the record at validation time (supports per-record overrides).
+            # See: https://github.com/devise-security/devise-security/issues/441
+            validates_with DeviseSecurity::PasswordLengthValidator,
+                           attributes: :password,
+                           if: :password_required?
           end
 
           # Extra email format validation via an external EmailValidator class.
@@ -85,18 +99,23 @@ module Devise
             end
           end
 
-          validate if: :password_required? do |record|
-            validates_with(
-              record.password_complexity_validator.is_a?(Class) ? record.password_complexity_validator : record.password_complexity_validator.classify.constantize,
-              { attributes: :password }.merge(record.password_complexity)
-            )
-          end
+          # Use wrapper validator so the complexity validator is discoverable
+          # via validators_on(:password) while still reading
+          # password_complexity_validator and password_complexity from the
+          # record at validation time (supports per-record overrides).
+          # See: https://github.com/devise-security/devise-security/issues/441
+          validates_with DeviseSecurity::PasswordComplexityDelegator,
+                         attributes: :password,
+                         if: :password_required?
 
           # don't allow use same password
           validate :current_equal_password_validation
 
           # don't allow email to equal password
           validate :email_not_equal_password_validation
+
+          # require current password when email changes (if configured)
+          validate :validate_current_password_for_email_change
         end
       end
 
@@ -128,6 +147,27 @@ module Devise
           user.password_salt = password_salt_was if respond_to?(:password_salt)
         end
         errors.add(:password, :equal_to_current_password) if dummy.valid_password?(password)
+      end
+
+      # Validate that the current password is provided and correct when the
+      # email address is being changed. Only runs when
+      # +require_password_on_email_change+ is enabled. Skipped for new records.
+      #
+      # Uses Devise's +current_password+ attr_accessor and +valid_password?+.
+      #
+      # @return [void]
+      def validate_current_password_for_email_change
+        value = self.class.require_password_on_email_change
+        enabled = value.is_a?(Proc) ? instance_exec(&value) : value
+        return unless enabled
+        return if new_record?
+        return unless will_save_change_to_attribute?(:email)
+
+        if current_password.blank?
+          errors.add(:current_password, :blank)
+        elsif !valid_password?(current_password)
+          errors.add(:current_password, :invalid)
+        end
       end
 
       # Validate that the password does not match the user's email address.
@@ -189,7 +229,8 @@ module Devise
           :email_validation,
           :password_complexity,
           :password_complexity_validator,
-          :password_length
+          :password_length,
+          :require_password_on_email_change
         )
 
         private
