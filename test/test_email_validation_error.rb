@@ -12,7 +12,7 @@ class TestEmailValidationError < ActiveSupport::TestCase
   # Model without :validatable so we can test secure_validatable's email
   # validation in isolation (Devise's :validatable adds its own email check).
   class SecureOnlyUser < ApplicationRecord
-    self.table_name = 'users'
+    self.table_name = 'users' if DEVISE_ORM == :active_record
     devise :database_authenticatable, :secure_validatable
     include ::Mongoid::Mappings if DEVISE_ORM == :mongoid
   end
