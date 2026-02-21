@@ -32,6 +32,13 @@ module Devise
   mattr_accessor :deny_old_passwords
   @@deny_old_passwords = true
 
+  # Time period for denying old password reuse (e.g. 3.months).
+  # When set, passwords used within this period are denied regardless of count.
+  # Takes precedence over +deny_old_passwords+ count when both are set.
+  # +nil+ (default) disables time-based checking — uses count-based only.
+  mattr_accessor :deny_old_passwords_period
+  @@deny_old_passwords_period = nil
+
   # enable email validation for :secure_validatable. (true, false, validation_options)
   # dependency: need an email validator, see https://github.com/devise-security/devise-security/blob/main/README.md#e-mail-validation
   mattr_accessor :email_validation
@@ -112,6 +119,12 @@ module Devise
   # Reject session when exceeded to allowed number of active sessions
   mattr_accessor :reject_sessions
   @@reject_sessions = false
+
+  # Require current password when changing email address.
+  # Accepts +true+, +false+, or a +Proc+ for dynamic resolution.
+  # Default: +false+ (backward-compatible).
+  mattr_accessor :require_password_on_email_change
+  @@require_password_on_email_change = false
 end
 
 # a security extension for devise
