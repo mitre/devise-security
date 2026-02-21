@@ -29,11 +29,6 @@ class TestDynamicConfigs < ActiveSupport::TestCase
     assert_equal User.reject_sessions, user.reject_sessions
   end
 
-  test 'SessionLimitable: timeout_in instance method delegates to class config' do
-    user = User.new
-    assert_equal User.timeout_in, user.timeout_in
-  end
-
   # ── SessionTraceable ─────────────────────────────────────────
 
   test 'SessionTraceable: session_ip_verification instance method delegates to class config' do
@@ -147,7 +142,28 @@ class TestDynamicConfigs < ActiveSupport::TestCase
     assert_equal User.expire_password_after, user.expire_password_after
   end
 
+  # ── SessionLimitable Proc support ────────────────────────────
+
+  test 'SessionLimitable: timeout_in instance method delegates to class config' do
+    user = User.new
+    assert_equal User.timeout_in, user.timeout_in
+  end
+
+  test 'SessionLimitable: max_active_sessions supports Proc config' do
+    user = User.new
+    user.define_singleton_method(:max_active_sessions) do
+      value = -> { 10 }
+      instance_exec(&value)
+    end
+    assert_equal 10, user.max_active_sessions
+  end
+
   # ── SecureValidatable ─────────────────────────────────────────
+
+  test 'SecureValidatable: require_password_on_email_change instance method delegates to class config' do
+    user = User.new
+    assert_equal User.require_password_on_email_change, user.require_password_on_email_change
+  end
 
   test 'SecureValidatable: allow_passwords_equal_to_email instance method delegates to class config' do
     user = User.new

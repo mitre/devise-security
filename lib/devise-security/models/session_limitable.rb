@@ -87,24 +87,38 @@ module Devise
 
       # Maximum number of active sessions allowed.
       # Without +session_traceable+, always returns 1 (original behavior).
+      # Supports +Proc+ values — resolved via +instance_exec+ so the Proc
+      # can reference instance state (e.g., +admin?+).
       #
       # @return [Integer]
       def max_active_sessions
         return 1 unless devise_modules.include?(:session_traceable)
 
-        self.class.max_active_sessions
+        value = self.class.max_active_sessions
+        value.is_a?(Proc) ? instance_exec(&value) : value
       end
 
       # Whether to reject new sessions when at capacity (vs evicting oldest).
       # Without +session_traceable+, always returns false.
+      # Supports +Proc+ values — resolved via +instance_exec+.
       #
       # @return [Boolean]
       def reject_sessions
         return false unless devise_modules.include?(:session_traceable)
 
-        self.class.reject_sessions
+        value = self.class.reject_sessions
+        value.is_a?(Proc) ? instance_exec(&value) : value
       end
       alias reject_sessions? reject_sessions
+
+      # Session timeout duration.
+      # Supports +Proc+ values — resolved via +instance_exec+.
+      #
+      # @return [ActiveSupport::Duration, nil] session timeout duration
+      def timeout_in
+        value = self.class.timeout_in
+        value.is_a?(Proc) ? instance_exec(&value) : value
+      end
 
       # Should session_limitable be skipped for this instance?
       # @return [Boolean]

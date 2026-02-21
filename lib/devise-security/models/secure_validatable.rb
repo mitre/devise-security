@@ -157,9 +157,7 @@ module Devise
       #
       # @return [void]
       def validate_current_password_for_email_change
-        value = self.class.require_password_on_email_change
-        enabled = value.is_a?(Proc) ? instance_exec(&value) : value
-        return unless enabled
+        return unless require_password_on_email_change
         return if new_record?
         return unless will_save_change_to_attribute?(:email)
 
@@ -186,6 +184,48 @@ module Devise
         errors.add(:password, :equal_to_email)
       end
 
+      # @return [Boolean] whether passwords equal to email are allowed
+      # Supports +Proc+ values — resolved via +instance_exec+.
+      def allow_passwords_equal_to_email
+        value = self.class.allow_passwords_equal_to_email
+        value.is_a?(Proc) ? instance_exec(&value) : value
+      end
+
+      # @return [Boolean] whether email validation is enabled
+      # Supports +Proc+ values — resolved via +instance_exec+.
+      def email_validation
+        value = self.class.email_validation
+        value.is_a?(Proc) ? instance_exec(&value) : value
+      end
+
+      # @return [Hash] password complexity requirements
+      # Supports +Proc+ values — resolved via +instance_exec+.
+      def password_complexity
+        value = self.class.password_complexity
+        value.is_a?(Proc) ? instance_exec(&value) : value
+      end
+
+      # @return [String, Class] password complexity validator class
+      # Supports +Proc+ values — resolved via +instance_exec+.
+      def password_complexity_validator
+        value = self.class.password_complexity_validator
+        value.is_a?(Proc) ? instance_exec(&value) : value
+      end
+
+      # @return [Range] allowed password length range
+      # Supports +Proc+ values — resolved via +instance_exec+.
+      def password_length
+        value = self.class.password_length
+        value.is_a?(Proc) ? instance_exec(&value) : value
+      end
+
+      # @return [Boolean] whether current password is required for email changes
+      # Supports +Proc+ values — resolved via +instance_exec+.
+      def require_password_on_email_change
+        value = self.class.require_password_on_email_change
+        value.is_a?(Proc) ? instance_exec(&value) : value
+      end
+
       protected
 
       # Checks whether a password is needed or not. For validations only.
@@ -210,17 +250,6 @@ module Devise
       def validate_email_uniqueness?
         true
       end
-
-      # Delegate configuration accessors to the class so instance-level
-      # validations can read class-level Devise config values.
-      delegate(
-        :allow_passwords_equal_to_email,
-        :email_validation,
-        :password_complexity,
-        :password_complexity_validator,
-        :password_length,
-        to: :class
-      )
 
       module ClassMethods
         Devise::Models.config(
