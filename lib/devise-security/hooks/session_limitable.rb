@@ -1,8 +1,26 @@
 # frozen_string_literal: true
 
-# After each sign in, update unique_session_id. This is only triggered when the
-# user is explicitly set (with set_user) and on authentication. Retrieving the
-# user from session (:fetch) does not trigger it.
+# Warden hooks for the +SessionLimitable+ module.
+#
+# Enforces that only one active session exists per user at a time (or up to
+# +max_active_sessions+ when combined with +SessionTraceable+).
+#
+# Lifecycle:
+# 1. *Login* — assigns a +unique_session_id+ to the user and stores it in
+#    the Warden session.
+# 2. *Fetch* — on each request, compares the stored session id with the
+#    user's current +unique_session_id+. A mismatch means another session
+#    superseded this one, so the old session is logged out.
+# 3. *Logout* — clears the +unique_session_id+ to prevent session replay.
+#
+# Skipped when +session_traceable+ is included (traceable hooks take over),
+# when the record returns +true+ from +skip_session_limitable?+, or when
+# the request env contains <tt>devise.skip_session_limitable</tt>.
+#
+# @see Devise::Models::SessionLimitable
+
+# After each sign in, assign a new +unique_session_id+.
+# Only triggered on explicit authentication, not on session fetch.
 Warden::Manager.after_set_user except: :fetch do |record, warden, options|
   if !record.devise_modules.include?(:session_traceable) &&
      record.devise_modules.include?(:session_limitable) &&
@@ -16,10 +34,9 @@ Warden::Manager.after_set_user except: :fetch do |record, warden, options|
   end
 end
 
-# Each time a record is fetched from session we check if a new session from
-# another browser was opened for the record or not, based on a unique session
-# identifier. If so, the old account is logged out and redirected to the sign in
-# page on the next request.
+# On each session fetch, verify that the stored session id still matches
+# the user's current +unique_session_id+. If another login has superseded
+# this session, clear the session and redirect to sign in.
 Warden::Manager.after_set_user only: :fetch do |record, warden, options|
   scope = options[:scope]
 
@@ -40,9 +57,7 @@ Warden::Manager.after_set_user only: :fetch do |record, warden, options|
   end
 end
 
-# When a user is signing out intentionally, we clear the unique session id
-# to prevent session replay attacks. This ensures there are 0 valid active
-# sessions immediately after signing out.
+# On sign out, clear the +unique_session_id+ to prevent session replay.
 Warden::Manager.before_logout do |record, warden, options|
   if record.nil? == false &&
      record.devise_modules&.include?(:session_limitable) &&

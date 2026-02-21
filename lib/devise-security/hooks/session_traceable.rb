@@ -1,9 +1,31 @@
 # frozen_string_literal: true
 
-# After each sign in, create new traceable session.
-# This is only triggered when the user is explicitly set (with set_user)
-# and on authentication. Retrieving the user from session (:fetch) does
-# not trigger it.
+# Warden hooks for the +SessionTraceable+ module.
+#
+# Tracks individual sessions via +SessionHistory+ records, enabling
+# configurable concurrent session limits (+max_active_sessions+),
+# IP verification, and per-session expiration.
+#
+# Lifecycle:
+# 1. *Login* — creates a +SessionHistory+ record with a unique token,
+#    the client's IP address, and user agent. The token is stored in the
+#    Warden session for subsequent validation.
+# 2. *Fetch* — on each request, validates the token is still active (and
+#    optionally matches the client IP). Updates +last_accessed_at+ on the
+#    session record. Includes backward-compatibility migration from
+#    +session_limitable+'s +unique_session_id+ to token-based tracking.
+# 3. *Logout* — marks the +SessionHistory+ record as inactive and removes
+#    the token from the Warden session.
+#
+# Skipped when the record returns +true+ from +skip_session_traceable?+
+# or when the request env contains <tt>devise.skip_session_traceable</tt>.
+#
+# @see Devise::Models::SessionTraceable
+# @see Devise::Models::SessionLimitable
+
+# After each sign in, create a new +SessionHistory+ record.
+# Logs the client IP and user agent. If +log_traceable_session!+ returns
+# +nil+ (e.g., rejected by +session_limitable+), the user is logged out.
 Warden::Manager.after_set_user except: :fetch do |record, warden, options|
   scope = options[:scope]
   if record.devise_modules.include?(:session_traceable) &&
@@ -24,8 +46,9 @@ Warden::Manager.after_set_user except: :fetch do |record, warden, options|
   end
 end
 
-# Each time a record is fetched from session we verify if the session
-# has a valid unique session identifier. If so, then we update the last accessed time.
+# On each session fetch, validate the token and update +last_accessed_at+.
+# Falls back to +session_limitable+'s +unique_session_id+ for backward
+# compatibility, migrating the session to token-based tracking on first hit.
 Warden::Manager.after_set_user only: :fetch do |record, warden, options|
   scope = options[:scope]
   if record.devise_modules.include?(:session_traceable) &&
@@ -55,7 +78,7 @@ Warden::Manager.after_set_user only: :fetch do |record, warden, options|
   end
 end
 
-# Before each sign out, expire the session and remove the token.
+# On sign out, expire the +SessionHistory+ record and remove the token.
 Warden::Manager.before_logout do |record, warden, options|
   session = warden.request.session["warden.user.#{options[:scope]}.session"]
   if session.present? && session['unique_traceable_token'].present?
