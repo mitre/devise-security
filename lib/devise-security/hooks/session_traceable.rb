@@ -7,7 +7,7 @@
 Warden::Manager.after_set_user except: :fetch do |record, warden, options|
   scope = options[:scope]
   if record.devise_modules.include?(:session_traceable) &&
-     warden.authenticated?(options[:scope]) &&
+     warden.authenticated?(scope) &&
      !record.skip_session_traceable?
     opts = {
       ip_address: warden.request.remote_ip,
@@ -15,7 +15,7 @@ Warden::Manager.after_set_user except: :fetch do |record, warden, options|
     }
     unique_traceable_token = record.log_traceable_session!(opts)
     if unique_traceable_token.present?
-      warden.session(options[:scope])['unique_traceable_token'] = unique_traceable_token
+      warden.session(scope)['unique_traceable_token'] = unique_traceable_token
     else
       warden.logout(scope)
       throw(:warden, scope: scope, message: :unauthenticated)
@@ -24,24 +24,24 @@ Warden::Manager.after_set_user except: :fetch do |record, warden, options|
 end
 
 # Each time a record is fetched from session we verify if the session
-# has a valid unique session identifier. If so, then we set the last accessed time.
+# has a valid unique session identifier. If so, then we update the last accessed time.
 Warden::Manager.after_set_user only: :fetch do |record, warden, options|
   scope = options[:scope]
-  env = warden.request.env
-  opts = { ip_address: warden.request.remote_ip }
   if record.devise_modules.include?(:session_traceable) &&
      warden.authenticated?(scope) &&
      options[:store] != false &&
-     !env['devise.skip_session_traceable'] &&
+     !warden.request.env['devise.skip_session_traceable'] &&
      !record.skip_session_traceable?
     session = warden.session(scope)
+    opts = { ip_address: warden.request.remote_ip }
     if session['unique_traceable_token'].present? &&
        record.accept_traceable_token?(session['unique_traceable_token'], opts)
-      record.update_traceable_token(session['unique_traceable_token'])
+      record.update_traceable_token!(session['unique_traceable_token'])
     elsif record.devise_modules.include?(:session_limitable) &&
           session['unique_session_id'].present? &&
           record.unique_session_id == session['unique_session_id']
-      # Backward compatibility for session_limitable
+      # Backward compatibility: migrate from session_limitable's unique_session_id
+      # to session_traceable's token-based tracking.
       # TODO: Remove in future release
       opts[:user_agent] = warden.request.headers['User-Agent']
       unique_traceable_token = record.log_traceable_session!(opts)
@@ -54,12 +54,11 @@ Warden::Manager.after_set_user only: :fetch do |record, warden, options|
   end
 end
 
-# Before each sign out, we expire the session and remove the token.
+# Before each sign out, expire the session and remove the token.
 Warden::Manager.before_logout do |record, warden, options|
   session = warden.request.session["warden.user.#{options[:scope]}.session"]
-  if session.present? &&
-     session['unique_traceable_token'].present?
-    record.expire_session_token(session['unique_traceable_token'])
+  if session.present? && session['unique_traceable_token'].present?
+    record.expire_session_token!(session['unique_traceable_token'])
     session.delete('unique_traceable_token')
   end
 end

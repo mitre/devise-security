@@ -47,9 +47,6 @@ require "orm/#{DEVISE_ORM}"
 require 'rails-controller-testing'
 Rails::Controller::Testing.install
 
-require 'mocha/minitest'
-require 'timecop'
-
 # Add support to load paths so we can overwrite broken test setup
 $LOAD_PATH.unshift File.expand_path('support', __dir__)
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].sort.each { |f| require f }

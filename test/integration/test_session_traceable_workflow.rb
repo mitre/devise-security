@@ -3,12 +3,14 @@
 require 'test_helper'
 
 class TestSessionTraceableWorkflow < ActionDispatch::IntegrationTest
+  include ActiveSupport::Testing::TimeHelpers
+
   setup do
     @user = create_traceable_user
     @user.confirm
   end
 
-  test 'failed login' do
+  test 'failed login does not create session history' do
     open_session do |session|
       failed_sign_in(@user, session)
 
@@ -18,7 +20,7 @@ class TestSessionTraceableWorkflow < ActionDispatch::IntegrationTest
     end
   end
 
-  test 'successful login' do
+  test 'successful login creates session history' do
     assert_equal(0, @user.session_histories.count)
 
     open_session do |session|
@@ -34,25 +36,23 @@ class TestSessionTraceableWorkflow < ActionDispatch::IntegrationTest
     end
   end
 
-  test 'last_accessed_at are updated on each request' do
+  test 'last_accessed_at updated on each request' do
     open_session do |session|
       scope = sign_in(@user, session)
       token = session.controller.warden.session(scope)['unique_traceable_token']
       trace = @user.find_traceable_by_token(token)
       first_accessed_at = trace.last_accessed_at
 
-      new_accessed_at = first_accessed_at + 1.second
-      Timecop.freeze(new_accessed_at) do
+      travel 1.second do
         session.get root_path
         trace.reload
 
-        assert_equal trace.last_accessed_at.to_s, new_accessed_at.to_s
-        assert_not_equal trace.last_accessed_at.to_s, first_accessed_at.to_s
+        assert trace.last_accessed_at > first_accessed_at
       end
     end
   end
 
-  test 'session record should expire on sign out' do
+  test 'session record expires on sign out' do
     open_session do |session|
       scope = sign_in(@user, session)
       token = session.controller.warden.session(scope)['unique_traceable_token']
@@ -67,23 +67,27 @@ class TestSessionTraceableWorkflow < ActionDispatch::IntegrationTest
     end
   end
 
-  test 'logout when failed to log' do
+  test 'logout when log_traceable_session! returns nil' do
     open_session do |session|
-      TraceableUser.any_instance.stubs(:log_traceable_session!).returns(nil)
+      TraceableUser.define_method(:log_traceable_session!) { |_opts| nil }
 
       scope = sign_in(@user, session)
       assert_not session.controller.send(:warden).authenticated?(scope)
+    ensure
+      TraceableUser.remove_method(:log_traceable_session!)
     end
   end
 
-  test 'logout when token is invalid' do
+  test 'logout when token becomes invalid' do
     open_session do |session|
       scope = sign_in(@user, session)
 
-      TraceableUser.any_instance.stubs(:accept_traceable_token?).returns(false)
+      TraceableUser.define_method(:accept_traceable_token?) { |_token, _opts| false }
       session.get widgets_path
 
       assert_not session.controller.send(:warden).authenticated?(scope)
+    ensure
+      TraceableUser.remove_method(:accept_traceable_token?)
     end
   end
 end
@@ -94,16 +98,18 @@ class TestSessionTraceableWithLimitWorkflow < ActionDispatch::IntegrationTest
     @user.confirm
   end
 
-  test 'logout when failed to log' do
+  test 'logout when log_traceable_session! returns nil' do
     open_session do |session|
-      TraceableUserWithLimit.any_instance.stubs(:log_traceable_session!).returns(nil)
+      TraceableUserWithLimit.define_method(:log_traceable_session!) { |_opts| nil }
 
       scope = sign_in(@user, session)
       assert_not session.controller.send(:warden).authenticated?(scope)
+    ensure
+      TraceableUserWithLimit.remove_method(:log_traceable_session!)
     end
   end
 
-  test 'unique_session_id backwardcompatibity' do
+  test 'unique_session_id backward compatibility migration' do
     open_session do |session|
       scope = sign_in(@user, session, :traceable_user_with_limit)
       # Simulate the old unique_session_id by removing the unique_traceable_token
