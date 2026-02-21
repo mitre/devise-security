@@ -82,6 +82,13 @@ module Devise
   mattr_accessor :delete_expired_after
   @@delete_expired_after = 90.days
 
+  # Minimum interval between last_activity_at DB writes.
+  # Set to a duration (e.g. 5.minutes) to throttle writes — the timestamp
+  # will only be updated if older than the interval.
+  # nil or 0 disables throttling (every request writes — the default).
+  mattr_accessor :last_activity_update_interval
+  @@last_activity_update_interval = nil
+
   # paranoid_verification will regenerate verifacation code after faild attempt
   mattr_accessor :paranoid_code_regenerate_after_attempt
   @@paranoid_code_regenerate_after_attempt = 10

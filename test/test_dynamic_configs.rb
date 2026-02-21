@@ -53,6 +53,11 @@ class TestDynamicConfigs < ActiveSupport::TestCase
     assert_equal User.delete_expired_after, user.delete_expired_after
   end
 
+  test 'Expirable: last_activity_update_interval instance method delegates to class config' do
+    user = User.new
+    assert_equal User.last_activity_update_interval, user.last_activity_update_interval
+  end
+
   test 'Expirable: expired? uses instance method (overridable)' do
     user = User.new(last_activity_at: 10.days.ago)
 

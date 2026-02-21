@@ -27,8 +27,29 @@ module Devise
       end
 
       # Updates +last_activity_at+, called from a Warden::Manager.after_set_user hook.
+      #
+      # When {#last_activity_update_interval} is set to a positive duration,
+      # the write is skipped if +last_activity_at+ was updated less than that
+      # interval ago. This avoids unnecessary DB writes on high-frequency
+      # authenticated requests (see upstream issue #494).
+      #
+      # @return [void]
       def update_last_activity!
+        interval = last_activity_update_interval
+
+        if interval && interval > 0 && last_activity_at.present? && last_activity_at > interval.ago
+          return
+        end
+
         update_attribute_without_validatons_or_callbacks(:last_activity_at, Time.now.utc)
+      end
+
+      # Minimum interval between +last_activity_at+ DB writes.
+      # Override in your model for per-record dynamic throttling.
+      #
+      # @return [ActiveSupport::Duration, Integer, nil]
+      def last_activity_update_interval
+        self.class.last_activity_update_interval
       end
 
       # Tells if the account has expired
@@ -90,7 +111,7 @@ module Devise
       end
 
       class_methods do
-        ::Devise::Models.config(self, :expire_after, :delete_expired_after)
+        ::Devise::Models.config(self, :expire_after, :delete_expired_after, :last_activity_update_interval)
 
         # Sample method for daily cron to mark expired entries.
         #
