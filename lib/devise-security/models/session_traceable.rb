@@ -50,6 +50,10 @@ module Devise
         session_history_class.create!(attrs) && token
       rescue ActiveRecord::ActiveRecordError
         nil
+      rescue StandardError => e
+        raise unless defined?(Mongoid) && e.is_a?(Mongoid::Errors::MongoidError)
+
+        nil
       end
 
       # Check if a session token is still valid (active and optionally IP-matched).
@@ -97,7 +101,7 @@ module Devise
       # @param conditions [Hash] additional query conditions
       # @return [SessionHistory, nil]
       def find_traceable_by_token(token, conditions = {})
-        session_histories.find_by(conditions.merge(token: token))
+        session_histories.where(conditions.merge(token: token)).first
       end
 
       # Whether session tokens are restricted to the originating IP address.

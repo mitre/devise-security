@@ -79,7 +79,7 @@ module Devise
                                    .where(last_accessed_at: ..cutoff)
         return false if expired.none?
 
-        expired.find_each do |session|
+        expired.each do |session|
           session.update_attribute_without_validatons_or_callbacks(:active, false)
         end
         true

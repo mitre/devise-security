@@ -71,7 +71,7 @@ module Devise
 
         if period
           # Time-based: check passwords created within the period
-          old_passwords_to_check = old_passwords.where('created_at > ?', period.ago).pluck(:encrypted_password)
+          old_passwords_to_check = old_passwords.where(created_at: period.ago..).pluck(:encrypted_password)
         else
           # Count-based: existing logic
           return false unless max_old_passwords.positive?
