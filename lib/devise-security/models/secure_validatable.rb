@@ -5,15 +5,29 @@ require_relative '../validators/password_complexity_validator'
 
 module Devise
   module Models
-    # SecureValidatable creates better validations with more validation for security
+    # SecureValidatable provides stricter validations than Devise's built-in
+    # +:validatable+ module. When both are present, SecureValidatable defers
+    # presence/length/uniqueness checks to +:validatable+ and only adds the
+    # extra security validations.
+    #
+    # Validations applied:
+    # - Email format via +EmailValidator+ (when +email_validation+ is truthy)
+    # - Email uniqueness scoped to +authentication_keys+
+    # - Password complexity via configurable validator class
+    # - Password != current password (on update)
+    # - Password != email (unless +allow_passwords_equal_to_email+ is set)
+    # - Password presence, confirmation, and length (unless +:validatable+ handles them)
     #
     # == Options
     #
-    # SecureValidatable adds the following options to devise_for:
+    # SecureValidatable adds the following options to +devise_for+:
     #
-    #   * +email_regexp+: the regular expression used to validate e-mails;
-    #   * +password_length+: a range expressing password length. Defaults from devise
-    #   * +password_regex+: need strong password. Defaults to /(?=.*\d)(?=.*[a-z])(?=.*[A-Z])/
+    #   * +email_validation+: enable/disable email format validation
+    #   * +password_length+: a +Range+ expressing password length. Defaults from Devise
+    #   * +password_complexity+: a +Hash+ of options passed to the complexity validator
+    #   * +password_complexity_validator+: validator class name (+String+ or +Class+).
+    #     Defaults to {DeviseSecurity::PasswordComplexityValidator}
+    #   * +allow_passwords_equal_to_email+: when truthy, skips the password-vs-email check
     #
     module SecureValidatable
       include Devise::Models::Compatibility
@@ -30,7 +44,7 @@ module Devise
             validation_condition = "#{login_attribute}_changed?".to_sym
 
             validates login_attribute, uniqueness: {
-                                         scope: authentication_keys[1..-1],
+                                         scope: secondary_authentication_keys,
                                          case_sensitive: !!case_insensitive_keys
                                        },
                                        if: validation_condition
@@ -78,14 +92,27 @@ module Devise
         end
       end
 
+      # Verify that the including class supports ActiveModel validations.
+      #
+      # @param base [Class] the class including this module
+      # @raise [RuntimeError] if +base+ does not respond to +validates+
+      # @return [void]
       def self.assert_secure_validations_api!(base)
         raise "Could not use SecureValidatable on #{base}" unless base.respond_to?(:validates)
       end
 
+      # @param _klass [Class]
+      # @return [Array<Symbol>] required database fields (none for this module)
       def self.required_fields(_klass)
         []
       end
 
+      # Validate that the new password is not the same as the current password.
+      # Skipped for new records, when the encrypted password hasn't changed,
+      # or when the password is blank. Creates a temporary model instance with
+      # the old encrypted password to test via +valid_password?+.
+      #
+      # @return [void]
       def current_equal_password_validation
         return if new_record? || !will_save_change_to_encrypted_password? || password.blank?
 
@@ -95,6 +122,12 @@ module Devise
         errors.add(:password, :equal_to_current_password) if dummy.valid_password?(password)
       end
 
+      # Validate that the password does not match the user's email address.
+      # Comparison is case-insensitive and stripped of whitespace.
+      # Skipped when +allow_passwords_equal_to_email+ is truthy, when either
+      # field is blank, or on existing records with no password change.
+      #
+      # @return [void]
       def email_not_equal_password_validation
         return if allow_passwords_equal_to_email
 
@@ -116,14 +149,22 @@ module Devise
         !persisted? || !password.nil? || !password_confirmation.nil?
       end
 
+      # Whether an email address is required for validation.
+      #
+      # @return [Boolean] true by default; override to make email optional
       def email_required?
         true
       end
 
+      # Whether email uniqueness should be validated.
+      #
+      # @return [Boolean] true by default; override to skip uniqueness check
       def validate_email_uniqueness?
         true
       end
 
+      # Delegate configuration accessors to the class so instance-level
+      # validations can read class-level Devise config values.
       delegate(
         :allow_passwords_equal_to_email,
         :email_validation,
@@ -145,6 +186,10 @@ module Devise
 
         private
 
+        # Check if the login attribute already has a uniqueness validator registered
+        # (e.g., from the application model or another Devise module).
+        #
+        # @return [Boolean]
         def uniqueness_validation_of_login?
           validators.any? do |validator|
             validator_orm_klass = DEVISE_ORM == :active_record ? ActiveRecord::Validations::UniquenessValidator : ::Mongoid::Validatable::UniquenessValidator
@@ -152,10 +197,34 @@ module Devise
           end
         end
 
+        # The primary authentication key (first element of +authentication_keys+).
+        # Handles both Array and Hash configurations of +authentication_keys+,
+        # consistent with how Devise core normalizes keys in its strategies
+        # and failure app.
+        #
+        # @return [Symbol]
+        # @raise [RuntimeError] if +authentication_keys+ is empty
         def login_attribute
-          authentication_keys[0]
+          keys = authentication_keys.respond_to?(:keys) ? authentication_keys.keys : authentication_keys
+          raise "#{self} has no authentication_keys configured. Cannot apply SecureValidatable." if keys.empty?
+
+          keys.first
         end
 
+        # All authentication keys except the primary one, used as the
+        # +scope+ for uniqueness validation. Normalizes Hash-style keys.
+        #
+        # @return [Array<Symbol>]
+        def secondary_authentication_keys
+          keys = authentication_keys.respond_to?(:keys) ? authentication_keys.keys : authentication_keys
+          keys[1..]
+        end
+
+        # Whether Devise's built-in +:validatable+ module is already included.
+        # When true, SecureValidatable skips presence/length/uniqueness checks
+        # to avoid duplicate validations.
+        #
+        # @return [Boolean]
         def devise_validation_enabled?
           ancestors.map(&:to_s).include? 'Devise::Models::Validatable'
         end

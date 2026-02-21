@@ -5,7 +5,18 @@ require_relative "#{DEVISE_ORM}/old_password"
 
 module Devise
   module Models
-    # PasswordArchivable, this depends on the DatabaseAuthenticatable module from devise
+    # PasswordArchivable prevents password reuse by archiving old passwords.
+    # Each password change stores the previous encrypted password in an
+    # +OldPassword+ record. On validation, the new password is checked against
+    # the most recent archived passwords.
+    #
+    # == Configuration
+    # * +deny_old_passwords+ - +Integer+ count of old passwords to deny,
+    #   +true+ to deny all archived, or +false+ to disable (default: +false+)
+    # * +password_archiving_count+ - max number of old passwords to store
+    #
+    # @see OldPassword the model storing archived password hashes
+    # @see Devise::Models::DatabaseAuthenticatable required base module
     module PasswordArchivable
       extend ActiveSupport::Concern
       include Devise::Models::Compatibility
@@ -19,10 +30,14 @@ module Devise
 
       delegate :present?, to: :password, prefix: true
 
+      # @param _klass [Class] the model class including this module
+      # @return [Array<Symbol>] required database columns (none for this module)
       def self.required_fields(_klass)
         []
       end
 
+      # Add a validation error if the new password matches a previously used one.
+      # @return [void]
       def validate_password_archive
         errors.add(:password, :taken_in_past) if will_save_change_to_encrypted_password? && password_archive_included?
       end
@@ -39,9 +54,12 @@ module Devise
         end
       end
 
-      # validate if the password was used in the past
-      # @return [true] if current password was used previously
-      # @return [false] if disabled or not previously used
+      # Check if the new password matches any previously used password.
+      # Compares against the most recent +max_old_passwords+ entries plus
+      # the current (about to be replaced) encrypted password.
+      #
+      # @return [true] if the new password was used previously
+      # @return [false] if reuse checking is disabled or no match found
       def password_archive_included?
         return false unless max_old_passwords.positive?
 
@@ -55,23 +73,42 @@ module Devise
         end
       end
 
+      # Maximum number of old passwords to deny reuse of.
+      # Override in your model for per-record dynamic behavior.
+      # Supports +Proc+ values — resolved via +instance_exec+ so the Proc
+      # has access to the model instance (e.g., for role-based logic).
+      #
+      # @return [Integer, Boolean] count, +true+ (deny all), or +false+ (allow all)
       def deny_old_passwords
-        self.class.deny_old_passwords
+        value = self.class.deny_old_passwords
+        value.is_a?(Proc) ? instance_exec(&value) : value
       end
 
+      # Set the deny_old_passwords config on the class.
+      #
+      # @param count [Integer, Boolean]
       def deny_old_passwords=(count)
         self.class.deny_old_passwords = count
       end
 
+      # Number of old passwords to archive.
+      # Override in your model for per-record dynamic behavior.
+      # Supports +Proc+ values — resolved via +instance_exec+.
+      #
+      # @return [Integer]
       def archive_count
-        self.class.password_archiving_count
+        value = self.class.password_archiving_count
+        value.is_a?(Proc) ? instance_exec(&value) : value
       end
 
       private
 
-      # Archive the last password before save and delete all to old passwords from archive
-      # @note we check to see if an old password has already been archived because
-      #   mongoid will keep re-triggering this callback when we add an old password
+      # Archive the current encrypted password before save and prune excess entries.
+      # When archiving is disabled (+max_old_passwords+ is 0), destroys all archives.
+      #
+      # @note Checks for an existing archive entry to avoid duplicates caused by
+      #   Mongoid re-triggering callbacks when adding an old password.
+      # @return [void]
       def archive_password
         if max_old_passwords.positive?
           return true if old_passwords.where(encrypted_password: encrypted_password_was).exists?
@@ -83,7 +120,7 @@ module Devise
         end
       end
 
-      module ClassMethods
+      class_methods do
         ::Devise::Models.config(self, :password_archiving_count, :deny_old_passwords)
       end
     end

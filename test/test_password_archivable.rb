@@ -86,6 +86,8 @@ class TestPasswordArchivable < ActiveSupport::TestCase
     assert_raises(ORMInvalidRecordException) { set_password(user, 'Password2') }
 
     assert_raises(ORMInvalidRecordException) { set_password(user, 'Password1') }
+  ensure
+    User.send(:remove_method, :archive_count)
   end
 
   test 'default sort orders do not affect archiving' do
