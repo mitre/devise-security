@@ -66,7 +66,7 @@ Warden::Manager.after_set_user only: :fetch do |record, warden, options|
           record.unique_session_id == session['unique_session_id']
       # Backward compatibility: migrate from session_limitable's unique_session_id
       # to session_traceable's token-based tracking.
-      # TODO: Remove in future release
+      # TODO: Remove backward-compat migration path in next major release (v1.0)
       opts[:user_agent] = warden.request.headers['User-Agent']
       unique_traceable_token = record.log_traceable_session!(opts)
       session['unique_traceable_token'] = unique_traceable_token if unique_traceable_token.present?
@@ -80,8 +80,10 @@ end
 
 # On sign out, expire the +SessionHistory+ record and remove the token.
 Warden::Manager.before_logout do |record, warden, options|
-  session = warden.request.session["warden.user.#{options[:scope]}.session"]
+  scope = options[:scope]
+  session = warden.request.session["warden.user.#{scope}.session"]
   if session.present? && session['unique_traceable_token'].present?
+    Rails.logger.debug { "[devise-security][session_traceable] expiring session token for #{record.class}##{record.id}" }
     record.expire_session_token!(session['unique_traceable_token'])
     session.delete('unique_traceable_token')
   end

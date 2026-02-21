@@ -22,14 +22,15 @@
 # After each sign in, assign a new +unique_session_id+.
 # Only triggered on explicit authentication, not on session fetch.
 Warden::Manager.after_set_user except: :fetch do |record, warden, options|
+  scope = options[:scope]
   if !record.devise_modules.include?(:session_traceable) &&
      record.devise_modules.include?(:session_limitable) &&
-     warden.authenticated?(options[:scope]) &&
+     warden.authenticated?(scope) &&
      !record.skip_session_limitable? &&
      !warden.request.env['devise.skip_session_limitable']
 
     unique_session_id = Devise.friendly_token
-    warden.session(options[:scope])['unique_session_id'] = unique_session_id
+    warden.session(scope)['unique_session_id'] = unique_session_id
     record.update_unique_session_id!(unique_session_id)
   end
 end
@@ -59,8 +60,8 @@ end
 
 # On sign out, clear the +unique_session_id+ to prevent session replay.
 Warden::Manager.before_logout do |record, warden, options|
-  if record.nil? == false &&
-     record.devise_modules&.include?(:session_limitable) &&
+  if record &&
+     record.devise_modules.include?(:session_limitable) &&
      !record.skip_session_limitable?
     record.update_unique_session_id!(nil)
   end
