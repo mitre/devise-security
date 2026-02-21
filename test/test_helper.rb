@@ -50,3 +50,28 @@ Rails::Controller::Testing.install
 # Add support to load paths so we can overwrite broken test setup
 $LOAD_PATH.unshift File.expand_path('support', __dir__)
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].sort.each { |f| require f }
+
+# Shared test helpers available to all test cases.
+class ActiveSupport::TestCase
+  # Clear Devise class-level instance variables that override global config.
+  # Useful in teardown/ensure blocks to restore clean state between tests.
+  #
+  #   clear_devise_class_vars(User, :deny_old_passwords, :password_archiving_count)
+  #
+  def clear_devise_class_vars(klass, *var_names)
+    var_names.each do |var|
+      ivar = :"@#{var}"
+      klass.remove_instance_variable(ivar) if klass.instance_variable_defined?(ivar)
+    end
+  end
+
+  # Set password and confirmation on a user record, then save!
+  #
+  #   set_password(user, 'NewPassword1')
+  #
+  def set_password(user, password)
+    user.password = password
+    user.password_confirmation = password
+    user.save!
+  end
+end

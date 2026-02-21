@@ -22,24 +22,14 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
     Devise.password_archiving_count = 10
 
     # Clear class-level overrides
-    User.remove_instance_variable(:@deny_old_passwords_period) if User.instance_variable_defined?(:@deny_old_passwords_period)
-    User.remove_instance_variable(:@deny_old_passwords) if User.instance_variable_defined?(:@deny_old_passwords)
-    User.remove_instance_variable(:@password_archiving_count) if User.instance_variable_defined?(:@password_archiving_count)
+    clear_devise_class_vars(User, :deny_old_passwords_period, :deny_old_passwords, :password_archiving_count)
   end
 
   teardown do
     Devise.deny_old_passwords = @original_deny
     Devise.password_archiving_count = @original_count
     Devise.deny_old_passwords_period = @original_period
-    User.remove_instance_variable(:@deny_old_passwords_period) if User.instance_variable_defined?(:@deny_old_passwords_period)
-    User.remove_instance_variable(:@deny_old_passwords) if User.instance_variable_defined?(:@deny_old_passwords)
-    User.remove_instance_variable(:@password_archiving_count) if User.instance_variable_defined?(:@password_archiving_count)
-  end
-
-  def set_password(user, password)
-    user.password = password
-    user.password_confirmation = password
-    user.save!
+    clear_devise_class_vars(User, :deny_old_passwords_period, :deny_old_passwords, :password_archiving_count)
   end
 
   # ── Default (nil): count-based behavior preserved ──────────────
@@ -133,7 +123,7 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
 
     assert_equal 6.months, user.deny_old_passwords_period
   ensure
-    User.remove_instance_variable(:@deny_old_passwords_period) if User.instance_variable_defined?(:@deny_old_passwords_period)
+    clear_devise_class_vars(User, :deny_old_passwords_period)
   end
 
   # ── Period takes precedence over count ─────────────────────────

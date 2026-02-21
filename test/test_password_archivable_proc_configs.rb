@@ -10,8 +10,7 @@ require 'test_helper'
 class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
   setup do
     # Clear any stale class ivars left by other test files (e.g., test_password_archivable.rb)
-    User.remove_instance_variable(:@deny_old_passwords) if User.instance_variable_defined?(:@deny_old_passwords)
-    User.remove_instance_variable(:@password_archiving_count) if User.instance_variable_defined?(:@password_archiving_count)
+    clear_devise_class_vars(User, :deny_old_passwords, :password_archiving_count)
   end
 
   # ── deny_old_passwords as Proc ───────────────────────────────
@@ -25,7 +24,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
     assert_equal 3, result
     assert_equal 1, call_count
   ensure
-    User.remove_instance_variable(:@deny_old_passwords) if User.instance_variable_defined?(:@deny_old_passwords)
+    clear_devise_class_vars(User, :deny_old_passwords)
   end
 
   test 'deny_old_passwords Proc has access to instance via self' do
@@ -34,7 +33,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
 
     assert_equal 5, user.deny_old_passwords
   ensure
-    User.remove_instance_variable(:@deny_old_passwords) if User.instance_variable_defined?(:@deny_old_passwords)
+    clear_devise_class_vars(User, :deny_old_passwords)
   end
 
   test 'deny_old_passwords Proc returning true denies all old passwords' do
@@ -44,7 +43,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
     assert_equal true, user.deny_old_passwords
     assert user.max_old_passwords.positive?
   ensure
-    User.remove_instance_variable(:@deny_old_passwords) if User.instance_variable_defined?(:@deny_old_passwords)
+    clear_devise_class_vars(User, :deny_old_passwords)
   end
 
   # ── password_archiving_count as Proc ─────────────────────────
@@ -55,7 +54,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
 
     assert_equal 7, user.archive_count
   ensure
-    User.remove_instance_variable(:@password_archiving_count) if User.instance_variable_defined?(:@password_archiving_count)
+    clear_devise_class_vars(User, :password_archiving_count)
   end
 
   test 'archive_count Proc has access to instance via self' do
@@ -64,7 +63,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
 
     assert_equal 4, user.archive_count
   ensure
-    User.remove_instance_variable(:@password_archiving_count) if User.instance_variable_defined?(:@password_archiving_count)
+    clear_devise_class_vars(User, :password_archiving_count)
   end
 
   # ── Integration: Procs flow through max_old_passwords ────────
@@ -75,7 +74,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
 
     assert_equal 4, user.max_old_passwords
   ensure
-    User.remove_instance_variable(:@deny_old_passwords) if User.instance_variable_defined?(:@deny_old_passwords)
+    clear_devise_class_vars(User, :deny_old_passwords)
   end
 
   # ── Regression: non-Proc configs still work ──────────────────
@@ -86,7 +85,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
 
     assert_equal 3, user.deny_old_passwords
   ensure
-    User.remove_instance_variable(:@deny_old_passwords) if User.instance_variable_defined?(:@deny_old_passwords)
+    clear_devise_class_vars(User, :deny_old_passwords)
   end
 
   test 'deny_old_passwords boolean true config still works' do
@@ -95,6 +94,6 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
 
     assert_equal true, user.deny_old_passwords
   ensure
-    User.remove_instance_variable(:@deny_old_passwords) if User.instance_variable_defined?(:@deny_old_passwords)
+    clear_devise_class_vars(User, :deny_old_passwords)
   end
 end

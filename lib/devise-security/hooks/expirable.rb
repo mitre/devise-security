@@ -9,10 +9,15 @@
 # Account expiry is checked during sign in via +active_for_authentication?+,
 # not in this hook.
 #
+# Uses +devise_modules.include?(:expirable)+ to guard against models that
+# do not include the module (consistent with session_limitable/session_traceable).
+#
 # @see Devise::Models::Expirable
 Warden::Manager.after_set_user do |record, warden, options|
   scope = options[:scope]
   if record &&
+     record.class.respond_to?(:devise_modules) &&
+     record.class.devise_modules.include?(:expirable) &&
      record.respond_to?(:active_for_authentication?) &&
      record.active_for_authentication? &&
      warden.authenticated?(scope) &&

@@ -11,12 +11,6 @@ class TestPasswordArchivable < ActiveSupport::TestCase
     Devise.password_archiving_count = 1
   end
 
-  def set_password(user, password)
-    user.password = password
-    user.password_confirmation = password
-    user.save!
-  end
-
   test 'required_fields should be an empty array' do
     assert_empty Devise::Models::PasswordArchivable.required_fields(User)
   end
