@@ -66,16 +66,61 @@ devise :password_expirable, :secure_validatable, :password_archivable, :session_
 
 ### E-mail Validation
 
-For `:secure_validatable` you need to have a way to validate an e-mail. There
-are multiple libraries that support this, and even a way built into Ruby!
+The `:secure_validatable` module has an `email_validation` config option (default: `true`).
+When enabled, it calls `validates_with EmailValidator` on the email attribute. This is
+**separate from** Devise's built-in `email_regexp` — it expects an `EmailValidator` class
+to exist at the top level.
 
-- (Recommended) Ruby built-in `URI::MailTo::EMAIL_REGEXP` constant
-  > Note: This method would require a `email_validation` method to be defined in
-  > order to hook into the `validates` method defined here.
-- [email_address](https://github.com/afair/email_address) gem
-- [valid_email2](https://github.com/micke/valid_email2) gem
-- [rails_email_validator](https://github.com/phatworx/rails_email_validator) gem
-  (deprecated)
+If `email_validation` is `true` and no `EmailValidator` class is found, you will get:
+
+```
+devise-security: email_validation is enabled but no EmailValidator class was found.
+```
+
+#### Option A: Install a gem that provides EmailValidator
+
+The simplest approach. Add a gem to your Gemfile that defines an `EmailValidator` class:
+
+```ruby
+# Gemfile
+gem 'rails_email_validator'
+```
+
+No other configuration needed — the gem defines `EmailValidator` and it works automatically.
+
+Other gems that provide `EmailValidator`:
+- [valid_email2](https://github.com/micke/valid_email2)
+- [email_address](https://github.com/afair/email_address)
+
+#### Option B: Define your own EmailValidator
+
+Use Ruby's built-in `URI::MailTo::EMAIL_REGEXP`:
+
+```ruby
+# app/validators/email_validator.rb
+class EmailValidator < ActiveModel::EachValidator
+  def validate_each(record, attribute, value)
+    unless URI::MailTo::EMAIL_REGEXP.match?(value.to_s)
+      record.errors.add(attribute, :invalid)
+    end
+  end
+end
+```
+
+#### Option C: Disable email validation
+
+If you handle email validation elsewhere or don't need it:
+
+```ruby
+# config/initializers/devise.rb
+Devise.setup do |config|
+  config.email_validation = false
+end
+```
+
+Note: Devise's own `:validatable` module still validates email format via `Devise.email_regexp`
+regardless of this setting. This option only controls the `EmailValidator` check added by
+`:secure_validatable`.
 
 ## Configuration
 

@@ -67,13 +67,21 @@ module Devise
             end
           end
 
-          # extra validations
-          # see https://github.com/devise-security/devise-security/blob/main/README.md#e-mail-validation
+          # Extra email format validation via an external EmailValidator class.
+          # Requires a gem that provides EmailValidator (e.g., rails_email_validator).
+          # Set `config.email_validation = false` to disable.
+          # See https://github.com/devise-security/devise-security/blob/main/README.md#e-mail-validation
           validate do
             if email_validation
-              validates_with(
-                EmailValidator, { attributes: :email }
-              )
+              unless defined?(::EmailValidator)
+                raise <<~MSG.squish
+                  devise-security: email_validation is enabled but no EmailValidator class
+                  was found. Install an email validator gem (e.g., 'rails_email_validator')
+                  or set `config.email_validation = false` in your Devise initializer.
+                  See: https://github.com/devise-security/devise-security#e-mail-validation
+                MSG
+              end
+              validates_with(::EmailValidator, { attributes: :email })
             end
           end
 
