@@ -41,19 +41,22 @@ module Devise
       # counter resets.
       #
       # @param code [String] the verification code entered by the user
-      # @return [Boolean] result of the +update_without_password+ call
+      # @return [Boolean] +true+ if the code matched, +false+ otherwise
       def verify_code(code)
         attempt = paranoid_verification_attempt
 
         if (attempt += 1) >= paranoid_code_regenerate_after_attempt
           generate_paranoid_code
+          false
         elsif code == paranoid_verification_code
           attempt = 0
           update_without_password paranoid_verification_code: nil,
                                   paranoid_verified_at: Time.zone.now,
                                   paranoid_verification_attempt: attempt
+          true
         else
           update_without_password paranoid_verification_attempt: attempt
+          false
         end
       end
 
