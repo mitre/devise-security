@@ -20,14 +20,16 @@ class TestEmailChangePassword < ActiveSupport::TestCase
   test 'config disabled (default): email change allowed without current_password' do
     swap Devise, require_password_on_email_change: false do
       @user.email = generate_unique_email
-      assert @user.valid?, "Expected user to be valid but got: #{@user.errors.full_messages}"
+
+      assert_predicate @user, :valid?, "Expected user to be valid but got: #{@user.errors.full_messages}"
     end
   end
 
   test 'config enabled: email change without current_password adds error' do
     swap Devise, require_password_on_email_change: true do
       @user.email = generate_unique_email
-      assert @user.invalid?
+
+      assert_predicate @user, :invalid?
       assert_includes @user.errors[:current_password], I18n.t('errors.messages.blank')
     end
   end
@@ -36,7 +38,8 @@ class TestEmailChangePassword < ActiveSupport::TestCase
     swap Devise, require_password_on_email_change: true do
       @user.email = generate_unique_email
       @user.current_password = 'WrongPassword1!'
-      assert @user.invalid?
+
+      assert_predicate @user, :invalid?
       assert_includes @user.errors[:current_password], I18n.t('errors.messages.invalid')
     end
   end
@@ -45,7 +48,8 @@ class TestEmailChangePassword < ActiveSupport::TestCase
     swap Devise, require_password_on_email_change: true do
       @user.email = generate_unique_email
       @user.current_password = @password
-      assert @user.valid?, "Expected user to be valid but got: #{@user.errors.full_messages}"
+
+      assert_predicate @user, :valid?, "Expected user to be valid but got: #{@user.errors.full_messages}"
     end
   end
 
@@ -55,7 +59,7 @@ class TestEmailChangePassword < ActiveSupport::TestCase
       @user.password = 'NewPassword1!'
       @user.password_confirmation = 'NewPassword1!'
       # current_equal_password_validation may fire but not our email-change validation
-      refute_includes @user.errors[:current_password], I18n.t('errors.messages.blank')
+      assert_not_includes @user.errors[:current_password], I18n.t('errors.messages.blank')
     end
   end
 
@@ -66,7 +70,8 @@ class TestEmailChangePassword < ActiveSupport::TestCase
         password: 'Password1!',
         password_confirmation: 'Password1!'
       )
-      assert user.valid?, "Expected new user to be valid but got: #{user.errors.full_messages}"
+
+      assert_predicate user, :valid?, "Expected new user to be valid but got: #{user.errors.full_messages}"
     end
   end
 
@@ -74,7 +79,8 @@ class TestEmailChangePassword < ActiveSupport::TestCase
     swap Devise, require_password_on_email_change: -> { email_was.include?('@secure.com') } do
       # User with non-secure email — no password required
       @user.email = 'new@example.com'
-      assert @user.valid?, "Expected user to be valid but got: #{@user.errors.full_messages}"
+
+      assert_predicate @user, :valid?, "Expected user to be valid but got: #{@user.errors.full_messages}"
 
       # Reload to reset changes
       @user.reload
@@ -82,18 +88,21 @@ class TestEmailChangePassword < ActiveSupport::TestCase
       # User changing TO a secure domain — still based on current email which is @example.com
       # The proc receives the record instance, so it checks the record's current state
       @user.email = 'new@secure.com'
-      assert @user.valid?, "Expected user to be valid but got: #{@user.errors.full_messages}"
+
+      assert_predicate @user, :valid?, "Expected user to be valid but got: #{@user.errors.full_messages}"
     end
   end
 
   test 'config as Proc returning true: requires current_password' do
     swap Devise, require_password_on_email_change: -> { true } do
       @user.email = generate_unique_email
-      assert @user.invalid?
+
+      assert_predicate @user, :invalid?
       assert_includes @user.errors[:current_password], I18n.t('errors.messages.blank')
 
       @user.current_password = @password
-      assert @user.valid?, "Expected user to be valid but got: #{@user.errors.full_messages}"
+
+      assert_predicate @user, :valid?, "Expected user to be valid but got: #{@user.errors.full_messages}"
     end
   end
 end

@@ -70,6 +70,7 @@ class TestSecureValidatableScopedUniqueness < ActiveSupport::TestCase
 
     scope = validator.options[:scope]
     scope = Array(scope)
+
     assert_includes scope, :username,
                     'the original scoped validator should be preserved with its scope intact'
   end

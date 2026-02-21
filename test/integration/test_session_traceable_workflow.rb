@@ -15,6 +15,7 @@ class TestSessionTraceableWorkflow < ActionDispatch::IntegrationTest
       failed_sign_in(@user, session)
 
       session.assert_response(:success)
+
       assert_match(/invalid.*email.*password/i, session.flash[:alert])
       assert_predicate @user.session_histories, :empty?
     end
@@ -30,6 +31,7 @@ class TestSessionTraceableWorkflow < ActionDispatch::IntegrationTest
       session.get widgets_path
 
       session.assert_response(:success)
+
       assert_equal('success', session.response.body)
       assert_predicate @user.session_histories, :any?
       assert_equal session.controller.warden.session(scope)['unique_traceable_token'], @user.session_histories.last.token
@@ -47,7 +49,7 @@ class TestSessionTraceableWorkflow < ActionDispatch::IntegrationTest
         session.get root_path
         trace.reload
 
-        assert trace.last_accessed_at > first_accessed_at
+        assert_operator trace.last_accessed_at, :>, first_accessed_at
       end
     end
   end
@@ -72,6 +74,7 @@ class TestSessionTraceableWorkflow < ActionDispatch::IntegrationTest
       TraceableUser.define_method(:log_traceable_session!) { |_opts| nil }
 
       scope = sign_in(@user, session)
+
       assert_not session.controller.send(:warden).authenticated?(scope)
     ensure
       TraceableUser.remove_method(:log_traceable_session!)
@@ -103,6 +106,7 @@ class TestSessionTraceableWithLimitWorkflow < ActionDispatch::IntegrationTest
       TraceableUserWithLimit.define_method(:log_traceable_session!) { |_opts| nil }
 
       scope = sign_in(@user, session)
+
       assert_not session.controller.send(:warden).authenticated?(scope)
     ensure
       TraceableUserWithLimit.remove_method(:log_traceable_session!)

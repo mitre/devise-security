@@ -19,7 +19,7 @@ class TestSecureValidatableHashAuthKeys < ActiveSupport::TestCase
     assert_equal :email, klass.send(:login_attribute)
   end
 
-  # Note: Devise itself overrides empty authentication_keys with its default
+  # NOTE: Devise itself overrides empty authentication_keys with its default
   # [:email], so empty keys cannot actually reach SecureValidatable in
   # practice. The guard in login_attribute is defensive — if somehow empty
   # keys do arrive, a clear error is raised instead of a nil crash.

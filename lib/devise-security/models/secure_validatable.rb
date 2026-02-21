@@ -40,9 +40,7 @@ module Devise
 
         # Devise 5+ only defines attr_reader :current_password.
         # Add a writer so the email-change validation can accept it.
-        unless base.method_defined?(:current_password=)
-          base.class_eval { attr_writer :current_password }
-        end
+        base.class_eval { attr_writer :current_password } unless base.method_defined?(:current_password=)
 
         base.class_eval do
           # Track whether email uniqueness is already handled — either by a
@@ -54,11 +52,11 @@ module Devise
 
           # validate login in a strict way if not yet validated
           unless uniqueness_validation_of_login?
-            validation_condition = "#{login_attribute}_changed?".to_sym
+            validation_condition = :"#{login_attribute}_changed?"
 
             validates login_attribute, uniqueness: {
                                          scope: secondary_authentication_keys,
-                                         case_sensitive: !!case_insensitive_keys
+                                         case_sensitive: !case_insensitive_keys.nil?
                                        },
                                        if: validation_condition
 
@@ -67,7 +65,7 @@ module Devise
 
           unless devise_validation_enabled?
             validates :email, presence: true, if: :email_required?
-            validates :email, uniqueness: true, allow_blank: true, if: :email_changed? && :validate_email_uniqueness? unless already_validated_email
+            validates :email, uniqueness: true, allow_blank: true, if: :validate_email_uniqueness? unless already_validated_email
 
             validates_presence_of :password, if: :password_required?
             validates_confirmation_of :password, if: :password_required?
@@ -95,6 +93,7 @@ module Devise
                   See: https://github.com/devise-security/devise-security#e-mail-validation
                 MSG
               end
+
               validates_with(::EmailValidator, { attributes: :email })
             end
           end

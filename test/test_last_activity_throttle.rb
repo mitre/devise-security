@@ -53,6 +53,7 @@ class TestLastActivityThrottle < ActiveSupport::TestCase
 
   test 'when last_activity_at is nil, always writes regardless of throttle' do
     Devise.last_activity_update_interval = 5.minutes
+
     assert_nil @user.last_activity_at
 
     @user.update_last_activity!
@@ -92,6 +93,7 @@ class TestLastActivityThrottle < ActiveSupport::TestCase
 
   test 'last_activity_update_interval instance method delegates to class config' do
     Devise.last_activity_update_interval = 3.minutes
+
     assert_equal User.last_activity_update_interval, @user.last_activity_update_interval
   end
 
@@ -115,11 +117,13 @@ class TestLastActivityThrottle < ActiveSupport::TestCase
 
   test 'accepts ActiveSupport::Duration values' do
     Devise.last_activity_update_interval = 30.seconds
+
     assert_equal 30.seconds, Devise.last_activity_update_interval
   end
 
   test 'accepts integer values (seconds)' do
     Devise.last_activity_update_interval = 300
+
     assert_equal 300, Devise.last_activity_update_interval
   end
 end

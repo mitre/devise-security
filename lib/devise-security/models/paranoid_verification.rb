@@ -23,7 +23,7 @@ module Devise
       # @param _klass [Class]
       # @return [Array<Symbol>] required database fields
       def self.required_fields(_klass)
-        [:paranoid_verification_code, :paranoid_verification_attempt, :paranoid_verified_at]
+        %i[paranoid_verification_code paranoid_verification_attempt paranoid_verified_at]
       end
 
       # Whether the user still needs to complete paranoid verification.
@@ -77,17 +77,13 @@ module Devise
       # Override in your model for per-record dynamic behavior.
       #
       # @return [Integer]
-      def paranoid_code_regenerate_after_attempt
-        self.class.paranoid_code_regenerate_after_attempt
-      end
+      delegate :paranoid_code_regenerate_after_attempt, to: :class
 
       # Lambda/proc that generates verification codes.
       # Override in your model for per-record dynamic behavior.
       #
       # @return [Proc]
-      def verification_code_generator
-        self.class.verification_code_generator
-      end
+      delegate :verification_code_generator, to: :class
 
       class_methods do
         ::Devise::Models.config(

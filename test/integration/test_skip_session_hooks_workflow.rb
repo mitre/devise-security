@@ -76,6 +76,7 @@ class TestSkipSessionTraceableViaEnv < ActionDispatch::IntegrationTest
       )
       # Should authenticate but not create session history
       session.assert_redirected_to '/'
+
       assert_equal 0, @user.session_histories.count
     end
   end

@@ -23,7 +23,7 @@ module Devise
       include Devise::Models::Compatibility
 
       def self.required_fields(_klass)
-        [:last_activity_at, :expired_at]
+        %i[last_activity_at expired_at]
       end
 
       # Updates +last_activity_at+, called from a Warden::Manager.after_set_user hook.
@@ -37,9 +37,7 @@ module Devise
       def update_last_activity!
         interval = last_activity_update_interval
 
-        if interval && interval > 0 && last_activity_at.present? && last_activity_at > interval.ago
-          return
-        end
+        return if interval&.positive? && last_activity_at.present? && last_activity_at > interval.ago
 
         update_attribute_without_validatons_or_callbacks(:last_activity_at, Time.now.utc)
       end
@@ -48,9 +46,7 @@ module Devise
       # Override in your model for per-record dynamic throttling.
       #
       # @return [ActiveSupport::Duration, Integer, nil]
-      def last_activity_update_interval
-        self.class.last_activity_update_interval
-      end
+      delegate :last_activity_update_interval, to: :class
 
       # Tells if the account has expired
       #
@@ -91,24 +87,20 @@ module Devise
       #
       # @return [Symbol] +:expired+ if the account is expired, otherwise delegates to +super+
       def inactive_message
-        !expired? ? super : :expired
+        expired? ? :expired : super
       end
 
       # Time interval after which accounts are considered expired.
       # Override in your model for per-record dynamic expiry.
       #
       # @return [ActiveSupport::Duration]
-      def expire_after
-        self.class.expire_after
-      end
+      delegate :expire_after, to: :class
 
       # Time interval after which expired accounts are deleted.
       # Override in your model for per-record dynamic behavior.
       #
       # @return [ActiveSupport::Duration]
-      def delete_expired_after
-        self.class.delete_expired_after
-      end
+      delegate :delete_expired_after, to: :class
 
       class_methods do
         ::Devise::Models.config(self, :expire_after, :delete_expired_after, :last_activity_update_interval)

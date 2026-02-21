@@ -29,7 +29,7 @@ module ActiveSupport
     end
 
     def valid_new_attributes(attributes = {})
-      username = generate_unique_username
+      generate_unique_username
       valid_attributes({
                          password_confirmation: 'Password1'
                        }).update(attributes)
@@ -73,7 +73,7 @@ module ActiveSupport
     def clear_cached_variables(options)
       return unless options.key?(:case_insensitive_keys) || options.key?(:strip_whitespace_keys)
 
-      Devise.mappings.each do |_, mapping|
+      Devise.mappings.each_value do |mapping|
         mapping.to.instance_variable_set(:@devise_parameter_filter, nil)
       end
     end

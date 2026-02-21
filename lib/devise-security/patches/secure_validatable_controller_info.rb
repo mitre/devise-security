@@ -30,10 +30,10 @@ module DeviseSecurity
       def set_minimum_password_length
         super
 
-        if devise_mapping.secure_validatable?
-          @minimum_password_length ||= resource_class.password_length.min
-          @minimum_password_complexity = resource_class.password_complexity
-        end
+        return unless devise_mapping.secure_validatable?
+
+        @minimum_password_length ||= resource_class.password_length.min
+        @minimum_password_complexity = resource_class.password_complexity
       end
     end
   end

@@ -44,14 +44,16 @@ class TestEmailValidationError < ActiveSupport::TestCase
       password: 'Password1!',
       password_confirmation: 'Password1!'
     )
-    assert valid_user.valid?
+
+    assert_predicate valid_user, :valid?
 
     invalid_user = SecureOnlyUser.new(
       email: 'not-an-email',
       password: 'Password1!',
       password_confirmation: 'Password1!'
     )
-    assert invalid_user.invalid?
+
+    assert_predicate invalid_user, :invalid?
     assert_includes invalid_user.errors.full_messages, 'Email is invalid'
   end
 
@@ -62,7 +64,8 @@ class TestEmailValidationError < ActiveSupport::TestCase
         password: 'Password1!',
         password_confirmation: 'Password1!'
       )
-      assert user.valid?, "Expected valid when email_validation is false, got: #{user.errors.full_messages}"
+
+      assert_predicate user, :valid?, "Expected valid when email_validation is false, got: #{user.errors.full_messages}"
     end
   end
 end

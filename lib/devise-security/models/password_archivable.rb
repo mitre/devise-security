@@ -102,9 +102,7 @@ module Devise
       # Set the deny_old_passwords config on the class.
       #
       # @param count [Integer, Boolean]
-      def deny_old_passwords=(count)
-        self.class.deny_old_passwords = count
-      end
+      delegate :deny_old_passwords=, to: :class
 
       # Time period for denying old password reuse.
       # Override in your model for per-record dynamic behavior.
@@ -139,7 +137,7 @@ module Devise
       # @return [void]
       def archive_password
         if max_old_passwords.positive? || deny_old_passwords_period
-          return true if old_passwords.where(encrypted_password: encrypted_password_was).exists?
+          return true if old_passwords.exists?(encrypted_password: encrypted_password_was)
 
           old_passwords.create!(encrypted_password: encrypted_password_was) if encrypted_password_was.present?
 

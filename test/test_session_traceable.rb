@@ -31,7 +31,7 @@ class TestSessionTraceable < ActiveSupport::TestCase
 
   test 'should not raise exception on log' do
     assert_nothing_raised do
-      refute_nil create_traceable_user.log_traceable_session!(default_options)
+      assert_not_nil create_traceable_user.log_traceable_session!(default_options)
     end
   end
 
@@ -40,6 +40,7 @@ class TestSessionTraceable < ActiveSupport::TestCase
     token = user.log_traceable_session!(default_options)
     # Create with duplicate token to trigger uniqueness constraint
     result = user.log_traceable_session!(default_options.merge(token: token))
+
     assert_nil result
   end
 
@@ -89,6 +90,7 @@ class TestSessionTraceable < ActiveSupport::TestCase
 
   test 'update_traceable_token! returns nil for unknown token' do
     user = create_traceable_user
+
     assert_nil user.update_traceable_token!('nonexistent-token')
   end
 
@@ -102,7 +104,7 @@ class TestSessionTraceable < ActiveSupport::TestCase
       user.update_traceable_token!(token)
       session.reload
 
-      assert session.last_accessed_at > old_last_accessed
+      assert_operator session.last_accessed_at, :>, old_last_accessed
     end
   end
 end

@@ -26,9 +26,6 @@ module DeviseSecurity
       # Mixin that overrides the +new+ action to allow captcha rendering
       # on the password recovery form.
       module RecoverPasswordCaptcha
-        def new
-          super
-        end
       end
 
       # Checks whether the request passes either a captcha or a security

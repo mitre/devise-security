@@ -22,9 +22,6 @@ module DeviseSecurity
       # Always prepends {SecureValidatableControllerInfo} into +DeviseController+.
       #
       # @return [void]
-      # rubocop:disable Metrics/AbcSize
-      # rubocop:disable Metrics/CyclomaticComplexity
-      # rubocop:disable Metrics/PerceivedComplexity
       def apply
         Devise::PasswordsController.include(Patches::ControllerCaptcha) if Devise.captcha_for_recover || Devise.security_question_for_recover
         Devise::UnlocksController.include(Patches::ControllerCaptcha) if Devise.captcha_for_unlock || Devise.security_question_for_unlock
@@ -39,9 +36,6 @@ module DeviseSecurity
 
         DeviseController.prepend(Patches::SecureValidatableControllerInfo)
       end
-      # rubocop:enable Metrics/AbcSize
-      # rubocop:enable Metrics/CyclomaticComplexity
-      # rubocop:enable Metrics/PerceivedComplexity
     end
   end
 end

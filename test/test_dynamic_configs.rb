@@ -21,11 +21,13 @@ class TestDynamicConfigs < ActiveSupport::TestCase
 
   test 'SessionLimitable: max_active_sessions instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.max_active_sessions, user.max_active_sessions
   end
 
   test 'SessionLimitable: reject_sessions instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.reject_sessions, user.reject_sessions
   end
 
@@ -33,6 +35,7 @@ class TestDynamicConfigs < ActiveSupport::TestCase
 
   test 'SessionTraceable: session_ip_verification instance method delegates to class config' do
     user = build(:traceable_user)
+
     assert_equal TraceableUser.session_ip_verification, user.session_ip_verification
   end
 
@@ -40,16 +43,19 @@ class TestDynamicConfigs < ActiveSupport::TestCase
 
   test 'Expirable: expire_after instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.expire_after, user.expire_after
   end
 
   test 'Expirable: delete_expired_after instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.delete_expired_after, user.delete_expired_after
   end
 
   test 'Expirable: last_activity_update_interval instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.last_activity_update_interval, user.last_activity_update_interval
   end
 
@@ -61,18 +67,21 @@ class TestDynamicConfigs < ActiveSupport::TestCase
 
     # Override to 5 days — now it IS expired
     user.define_singleton_method(:expire_after) { 5.days }
-    assert user.expired?
+
+    assert_predicate user, :expired?
   end
 
   # ── ParanoidVerification ───────────────────────────────────────
 
   test 'ParanoidVerification: paranoid_code_regenerate_after_attempt instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.paranoid_code_regenerate_after_attempt, user.paranoid_code_regenerate_after_attempt
   end
 
   test 'ParanoidVerification: verification_code_generator instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.verification_code_generator, user.verification_code_generator
   end
 
@@ -84,6 +93,7 @@ class TestDynamicConfigs < ActiveSupport::TestCase
 
     # Override to 3 — remaining should be 3
     user.define_singleton_method(:paranoid_code_regenerate_after_attempt) { 3 }
+
     assert_equal 3, user.paranoid_attempts_remaining
   end
 
@@ -94,11 +104,13 @@ class TestDynamicConfigs < ActiveSupport::TestCase
     user.define_singleton_method(:paranoid_code_regenerate_after_attempt) { 2 }
 
     user.verify_code('wrong')
+
     assert_equal 1, user.paranoid_verification_attempt
     assert_equal 'abcde', user.paranoid_verification_code
 
     # Second wrong attempt triggers regeneration (threshold=2)
     user.verify_code('wrong-again')
+
     assert_equal 0, user.paranoid_verification_attempt
     assert_not_equal 'abcde', user.paranoid_verification_code
   end
@@ -117,16 +129,19 @@ class TestDynamicConfigs < ActiveSupport::TestCase
 
   test 'PasswordArchivable: deny_old_passwords instance method exists and delegates' do
     user = build(:user)
+
     assert_equal User.deny_old_passwords, user.deny_old_passwords
   end
 
   test 'PasswordArchivable: archive_count instance method exists and delegates' do
     user = build(:user)
+
     assert_equal User.password_archiving_count, user.archive_count
   end
 
   test 'PasswordArchivable: deny_old_passwords_period instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.deny_old_passwords_period, user.deny_old_passwords_period
   end
 
@@ -134,6 +149,7 @@ class TestDynamicConfigs < ActiveSupport::TestCase
 
   test 'PasswordExpirable: expire_password_after instance method exists and delegates' do
     user = build(:user)
+
     assert_equal User.expire_password_after, user.expire_password_after
   end
 
@@ -141,6 +157,7 @@ class TestDynamicConfigs < ActiveSupport::TestCase
 
   test 'SessionLimitable: timeout_in instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.timeout_in, user.timeout_in
   end
 
@@ -150,6 +167,7 @@ class TestDynamicConfigs < ActiveSupport::TestCase
       value = -> { 10 }
       instance_exec(&value)
     end
+
     assert_equal 10, user.max_active_sessions
   end
 
@@ -157,31 +175,37 @@ class TestDynamicConfigs < ActiveSupport::TestCase
 
   test 'SecureValidatable: require_password_on_email_change instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.require_password_on_email_change, user.require_password_on_email_change
   end
 
   test 'SecureValidatable: allow_passwords_equal_to_email instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.allow_passwords_equal_to_email, user.allow_passwords_equal_to_email
   end
 
   test 'SecureValidatable: email_validation instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.email_validation, user.email_validation
   end
 
   test 'SecureValidatable: password_complexity instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.password_complexity, user.password_complexity
   end
 
   test 'SecureValidatable: password_complexity_validator instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.password_complexity_validator, user.password_complexity_validator
   end
 
   test 'SecureValidatable: password_length instance method delegates to class config' do
     user = build(:user)
+
     assert_equal User.password_length, user.password_length
   end
 
@@ -190,6 +214,7 @@ class TestDynamicConfigs < ActiveSupport::TestCase
 
     # Default: allow_passwords_equal_to_email is false, so validation fails
     user.valid?
+
     assert user.errors[:password].any? { |msg| msg.include?('equal') || msg.include?('email') },
            'Expected password-equals-email validation error'
 
@@ -197,6 +222,7 @@ class TestDynamicConfigs < ActiveSupport::TestCase
     user.define_singleton_method(:allow_passwords_equal_to_email) { true }
     user.errors.clear
     user.send(:email_not_equal_password_validation)
+
     assert_not user.errors[:password].any? { |msg| msg.include?('equal') || msg.include?('email') },
                'Expected no password-equals-email error when overridden'
   end

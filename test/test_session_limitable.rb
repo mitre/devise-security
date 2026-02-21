@@ -17,12 +17,14 @@ class TestSessionLimitable < ActiveSupport::TestCase
 
   test 'check is not skipped by default' do
     user = build(:user)
+
     assert_not(user.skip_session_limitable?)
   end
 
   test 'default check can be overridden by record instance' do
     modified_user = ModifiedUser.new(email: generate_unique_email, password: 'Password1')
-    assert(modified_user.skip_session_limitable?)
+
+    assert_predicate(modified_user, :skip_session_limitable?)
   end
 
   class SessionLimitableUser < User
@@ -36,7 +38,8 @@ class TestSessionLimitable < ActiveSupport::TestCase
 
   test '#update_unique_session_id!(value) updates valid record' do
     user = create(:user)
-    assert user.persisted?
+
+    assert_predicate user, :persisted?
     assert_nil user.unique_session_id
     user.update_unique_session_id!('unique_value')
     user.reload
@@ -47,13 +50,15 @@ class TestSessionLimitable < ActiveSupport::TestCase
   test '#update_unique_session_id!(value) updates invalid record atomically' do
     user = create(:user)
     original_email = user.email
-    assert user.persisted?
+
+    assert_predicate user, :persisted?
     user.email = ''
 
     assert_predicate user, :invalid?
     assert_nil user.unique_session_id
     user.update_unique_session_id!('unique_value')
     user.reload
+
     assert_equal(original_email, user.email)
     assert_equal('unique_value', user.unique_session_id)
   end
@@ -66,8 +71,7 @@ class TestSessionLimitable < ActiveSupport::TestCase
       user.update_unique_session_id!('unique_value')
       user.reload
 
-      assert user.updated_at > original_updated_at,
-             'updated_at should advance when unique_session_id is set'
+      assert_operator user.updated_at, :>, original_updated_at, 'updated_at should advance when unique_session_id is set'
     end
   end
 
@@ -139,7 +143,7 @@ class TestSessionLimitableWithTraceable < ActiveSupport::TestCase
 
       travel 2.seconds do
         # Session is expired, should be deactivated to make room
-        assert user.allow_limitable_authentication?
+        assert_predicate user, :allow_limitable_authentication?
       end
     end
   end
@@ -152,6 +156,7 @@ class TestSessionLimitableWithTraceable < ActiveSupport::TestCase
       assert_predicate user, :allow_limitable_authentication?
 
       active_sessions = user.reload.session_histories.where(active: true)
+
       assert_equal 0, active_sessions.count
     end
   end
@@ -175,6 +180,7 @@ class TestSessionLimitableWithTraceable < ActiveSupport::TestCase
       end
 
       active_sessions = user.reload.session_histories.where(active: true)
+
       assert_equal 2, active_sessions.count
     end
   end

@@ -76,7 +76,7 @@ module Devise
 
         cutoff = timeout_in.ago
         expired = session_histories.where(active: true)
-                                   .where('last_accessed_at <= ?', cutoff)
+                                   .where(last_accessed_at: ..cutoff)
         return false if expired.none?
 
         expired.find_each do |session|

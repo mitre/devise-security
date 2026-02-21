@@ -10,8 +10,9 @@ require 'test_helper'
 class TestSecureValidatableControllerInfo < ActiveSupport::TestCase
   test 'set_minimum_password_length sets @minimum_password_length for secure_validatable mapping' do
     mapping = Devise.mappings[:user]
-    assert mapping.secure_validatable?,
-           'Expected :user mapping to include :secure_validatable'
+
+    assert_predicate mapping, :secure_validatable?,
+                     'Expected :user mapping to include :secure_validatable'
 
     controller = build_controller_with_mapping(mapping)
     controller.send(:set_minimum_password_length)
@@ -22,8 +23,9 @@ class TestSecureValidatableControllerInfo < ActiveSupport::TestCase
 
   test 'set_minimum_password_length sets @minimum_password_complexity for secure_validatable mapping' do
     mapping = Devise.mappings[:user]
-    assert mapping.secure_validatable?,
-           'Expected :user mapping to include :secure_validatable'
+
+    assert_predicate mapping, :secure_validatable?,
+                     'Expected :user mapping to include :secure_validatable'
 
     controller = build_controller_with_mapping(mapping)
     controller.send(:set_minimum_password_length)
@@ -34,8 +36,9 @@ class TestSecureValidatableControllerInfo < ActiveSupport::TestCase
 
   test 'set_minimum_password_length preserves original validatable behavior' do
     mapping = Devise.mappings[:user]
-    assert mapping.validatable?,
-           'Expected :user mapping to include :validatable'
+
+    assert_predicate mapping, :validatable?,
+                     'Expected :user mapping to include :validatable'
 
     controller = build_controller_with_mapping(mapping)
     controller.send(:set_minimum_password_length)

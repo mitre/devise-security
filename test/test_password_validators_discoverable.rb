@@ -44,7 +44,7 @@ class TestPasswordValidatorsDiscoverable < ActiveSupport::TestCase
       password_confirmation: 'Pa1!'
     )
 
-    assert user.invalid?
+    assert_predicate user, :invalid?
     assert user.errors[:password].any? { |msg| msg.include?('too short') },
            "Expected 'too short' error, got: #{user.errors[:password]}"
   end
@@ -56,7 +56,7 @@ class TestPasswordValidatorsDiscoverable < ActiveSupport::TestCase
       password_confirmation: 'password'
     )
 
-    assert user.invalid?
+    assert_predicate user, :invalid?
     assert user.errors[:password].any? { |msg| msg.include?('upper-case') || msg.include?('digit') },
            "Expected complexity error, got: #{user.errors[:password]}"
   end
@@ -70,7 +70,8 @@ class TestPasswordValidatorsDiscoverable < ActiveSupport::TestCase
 
     # Persisted user with no password change should be valid
     user.email = generate_unique_email
-    assert user.valid?, "Expected persisted user without password change to be valid, got: #{user.errors.full_messages}"
+
+    assert_predicate user, :valid?, "Expected persisted user without password change to be valid, got: #{user.errors.full_messages}"
   end
 
   test 'dynamic password_length override still works at instance level' do
@@ -81,11 +82,12 @@ class TestPasswordValidatorsDiscoverable < ActiveSupport::TestCase
     )
 
     # Should be valid with default length (7..128)
-    assert user.valid?, "Expected valid with default length, got: #{user.errors.full_messages}"
+    assert_predicate user, :valid?, "Expected valid with default length, got: #{user.errors.full_messages}"
 
     # Override to require 20+ chars
     user.define_singleton_method(:password_length) { 20..128 }
-    assert user.invalid?, 'Expected invalid with overridden length of 20..128'
+
+    assert_predicate user, :invalid?, 'Expected invalid with overridden length of 20..128'
     assert user.errors[:password].any? { |msg| msg.include?('too short') },
            "Expected 'too short' error with overridden length"
   end
@@ -98,10 +100,11 @@ class TestPasswordValidatorsDiscoverable < ActiveSupport::TestCase
     )
 
     # Valid with default complexity (upper:1, lower:1, digit:1)
-    assert user.valid?, "Expected valid with default complexity, got: #{user.errors.full_messages}"
+    assert_predicate user, :valid?, "Expected valid with default complexity, got: #{user.errors.full_messages}"
 
     # Override to require 5 symbols
     user.define_singleton_method(:password_complexity) { { symbol: 5 } }
-    assert user.invalid?, 'Expected invalid with overridden complexity requiring 5 symbols'
+
+    assert_predicate user, :invalid?, 'Expected invalid with overridden complexity requiring 5 symbols'
   end
 end

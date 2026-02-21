@@ -18,9 +18,13 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
   test 'deny_old_passwords Proc is resolved at call time' do
     user = build(:user)
     call_count = 0
-    User.deny_old_passwords = Proc.new { call_count += 1; 3 }
+    User.deny_old_passwords = proc {
+      call_count += 1
+      3
+    }
 
     result = user.deny_old_passwords
+
     assert_equal 3, result
     assert_equal 1, call_count
   ensure
@@ -29,7 +33,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
 
   test 'deny_old_passwords Proc has access to instance via self' do
     user = build(:user)
-    User.deny_old_passwords = Proc.new { respond_to?(:email) ? 5 : 0 }
+    User.deny_old_passwords = proc { respond_to?(:email) ? 5 : 0 }
 
     assert_equal 5, user.deny_old_passwords
   ensure
@@ -38,10 +42,10 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
 
   test 'deny_old_passwords Proc returning true denies all old passwords' do
     user = build(:user)
-    User.deny_old_passwords = Proc.new { true }
+    User.deny_old_passwords = proc { true }
 
-    assert_equal true, user.deny_old_passwords
-    assert user.max_old_passwords.positive?
+    assert user.deny_old_passwords
+    assert_predicate user.max_old_passwords, :positive?
   ensure
     clear_devise_class_vars(User, :deny_old_passwords)
   end
@@ -50,7 +54,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
 
   test 'archive_count Proc is resolved at call time' do
     user = build(:user)
-    User.password_archiving_count = Proc.new { 7 }
+    User.password_archiving_count = proc { 7 }
 
     assert_equal 7, user.archive_count
   ensure
@@ -59,7 +63,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
 
   test 'archive_count Proc has access to instance via self' do
     user = build(:user)
-    User.password_archiving_count = Proc.new { respond_to?(:email) ? 4 : 1 }
+    User.password_archiving_count = proc { respond_to?(:email) ? 4 : 1 }
 
     assert_equal 4, user.archive_count
   ensure
@@ -70,7 +74,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
 
   test 'max_old_passwords uses resolved Proc value from deny_old_passwords' do
     user = build(:user)
-    User.deny_old_passwords = Proc.new { 4 }
+    User.deny_old_passwords = proc { 4 }
 
     assert_equal 4, user.max_old_passwords
   ensure
@@ -92,7 +96,7 @@ class TestPasswordArchivableProcConfigs < ActiveSupport::TestCase
     user = build(:user)
     User.deny_old_passwords = true
 
-    assert_equal true, user.deny_old_passwords
+    assert user.deny_old_passwords
   ensure
     clear_devise_class_vars(User, :deny_old_passwords)
   end

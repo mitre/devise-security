@@ -42,7 +42,7 @@ module Devise
       # @param _klass [Class] the model class including this module
       # @return [Array<Symbol>] required database columns
       def self.required_fields(_klass)
-        [:security_question_id, :security_question_answer]
+        %i[security_question_id security_question_answer]
       end
     end
   end

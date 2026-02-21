@@ -18,8 +18,6 @@ Warden::Manager.after_authentication do |record, warden, options|
     scope = options[:scope]
     expired = record.need_change_password?
     warden.session(scope)['password_expired'] = expired
-    if expired
-      Rails.logger.debug { "[devise-security][password_expirable] password expired for #{record.class}##{record.id}" }
-    end
+    Rails.logger.debug { "[devise-security][password_expirable] password expired for #{record.class}##{record.id}" } if expired
   end
 end

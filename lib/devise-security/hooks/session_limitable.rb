@@ -23,7 +23,7 @@
 # Only triggered on explicit authentication, not on session fetch.
 Warden::Manager.after_set_user except: :fetch do |record, warden, options|
   scope = options[:scope]
-  if !record.devise_modules.include?(:session_traceable) &&
+  if record.devise_modules.exclude?(:session_traceable) &&
      record.devise_modules.include?(:session_limitable) &&
      warden.authenticated?(scope) &&
      !record.skip_session_limitable? &&
@@ -41,12 +41,12 @@ end
 Warden::Manager.after_set_user only: :fetch do |record, warden, options|
   scope = options[:scope]
 
-  if !record.devise_modules.include?(:session_traceable) &&
+  if record.devise_modules.exclude?(:session_traceable) &&
      record.devise_modules.include?(:session_limitable) &&
      warden.authenticated?(scope) &&
-     options[:store] != false && (record.unique_session_id != warden.session(scope)['unique_session_id'] &&
-       !record.skip_session_limitable? &&
-       !warden.request.env['devise.skip_session_limitable'])
+     options[:store] != false && record.unique_session_id != warden.session(scope)['unique_session_id'] &&
+     !record.skip_session_limitable? &&
+     !warden.request.env['devise.skip_session_limitable']
     Rails.logger.warn do
       '[devise-security][session_limitable] session id mismatch: ' \
         "expected=#{record.unique_session_id.inspect} " \
@@ -59,9 +59,8 @@ Warden::Manager.after_set_user only: :fetch do |record, warden, options|
 end
 
 # On sign out, clear the +unique_session_id+ to prevent session replay.
-Warden::Manager.before_logout do |record, warden, options|
-  if record &&
-     record.devise_modules.include?(:session_limitable) &&
+Warden::Manager.before_logout do |record, _warden, _options|
+  if record&.devise_modules&.include?(:session_limitable) &&
      !record.skip_session_limitable?
     record.update_unique_session_id!(nil)
   end

@@ -101,7 +101,7 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
   # ── Period as Proc ─────────────────────────────────────────────
 
   test 'period as Proc: resolved at call time with instance_exec' do
-    User.deny_old_passwords_period = Proc.new { 3.months }
+    User.deny_old_passwords_period = proc { 3.months }
 
     user = create(:user)
     set_password(user, 'Password2')
@@ -119,7 +119,7 @@ class TestPasswordArchivePeriod < ActiveSupport::TestCase
 
   test 'period Proc has access to instance via self' do
     user = build(:user)
-    User.deny_old_passwords_period = Proc.new { respond_to?(:email) ? 6.months : nil }
+    User.deny_old_passwords_period = proc { respond_to?(:email) ? 6.months : nil }
 
     assert_equal 6.months, user.deny_old_passwords_period
   ensure

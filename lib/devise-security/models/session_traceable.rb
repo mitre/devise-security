@@ -103,9 +103,7 @@ module Devise
       # Whether session tokens are restricted to the originating IP address.
       #
       # @return [Boolean] true by default
-      def session_ip_verification
-        self.class.session_ip_verification
-      end
+      delegate :session_ip_verification, to: :class
 
       # Should session_traceable be skipped for this instance?
       #
