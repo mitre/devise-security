@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'compatibility'
 require 'devise-security/hooks/expirable'
 
 module Devise
@@ -19,6 +20,7 @@ module Devise
     #
     module Expirable
       extend ActiveSupport::Concern
+      include Devise::Models::Compatibility
 
       def self.required_fields(_klass)
         [:last_activity_at, :expired_at]
@@ -26,11 +28,7 @@ module Devise
 
       # Updates +last_activity_at+, called from a Warden::Manager.after_set_user hook.
       def update_last_activity!
-        if respond_to?(:update_column)
-          self.update_column(:last_activity_at, Time.now.utc)
-        elsif defined? Mongoid
-          self.update_attribute(:last_activity_at, Time.now.utc)
-        end
+        update_attribute_without_validatons_or_callbacks(:last_activity_at, Time.now.utc)
       end
 
       # Tells if the account has expired
@@ -41,7 +39,7 @@ module Devise
         return expired_at < Time.now.utc unless expired_at.nil?
 
         # if it is not set, check the last activity against configured expire_after time range
-        return last_activity_at < self.class.expire_after.ago unless last_activity_at.nil?
+        return last_activity_at < expire_after.ago unless last_activity_at.nil?
 
         # if last_activity_at is nil as well, the user has to be 'fresh' and is therefore not expired
         false
@@ -69,11 +67,29 @@ module Devise
 
       # The message sym, if {#active_for_authentication?} returns +false+. E.g. needed
       # for i18n.
+      #
+      # @return [Symbol] +:expired+ if the account is expired, otherwise delegates to +super+
       def inactive_message
         !expired? ? super : :expired
       end
 
-      module ClassMethods
+      # Time interval after which accounts are considered expired.
+      # Override in your model for per-record dynamic expiry.
+      #
+      # @return [ActiveSupport::Duration]
+      def expire_after
+        self.class.expire_after
+      end
+
+      # Time interval after which expired accounts are deleted.
+      # Override in your model for per-record dynamic behavior.
+      #
+      # @return [ActiveSupport::Duration]
+      def delete_expired_after
+        self.class.delete_expired_after
+      end
+
+      class_methods do
         ::Devise::Models.config(self, :expire_after, :delete_expired_after)
 
         # Sample method for daily cron to mark expired entries.
@@ -88,9 +104,21 @@ module Devise
           end
         end
 
-        # Scope method to collect all expired users since +time+ ago
+        # Scope to collect all users who have been expired for at least +time+.
+        # Includes both manually expired users (via +expired_at+) and
+        # inactivity-expired users (via +last_activity_at+ older than
+        # +expire_after + time+).
+        #
+        # @param time [ActiveSupport::Duration] minimum duration since expiry
+        #   (defaults to +delete_expired_after+)
+        # @return [ActiveRecord::Relation]
         def expired_for(time = delete_expired_after)
-          where('expired_at < ?', time.seconds.ago)
+          where(
+            'expired_at < :cutoff OR ' \
+            '(expired_at IS NULL AND last_activity_at IS NOT NULL AND last_activity_at < :inactivity_cutoff)',
+            cutoff: time.ago,
+            inactivity_cutoff: (expire_after + time).ago
+          )
         end
 
         # Sample method for daily cron to delete all expired entries after a
