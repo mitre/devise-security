@@ -15,6 +15,10 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4"
-          bundler-cache: true
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmagickwand-dev
+          bundle install
       - name: Run RuboCop
         run: bundle exec rubocop --format github
