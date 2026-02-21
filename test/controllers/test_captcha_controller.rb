@@ -40,8 +40,6 @@ end
 
 # Unit tests for helper methods in DeviseSecurity::Controllers::Helpers
 class TestHelperMethods < ActiveSupport::TestCase
-  require 'ostruct'
-
   # Minimal class that can include Helpers without triggering before_action
   class FakeController
     def self.before_action(*); end
@@ -60,19 +58,19 @@ class TestHelperMethods < ActiveSupport::TestCase
   end
 
   test 'valid_captcha_or_security_question? returns true when security question matches' do
-    resource = OpenStruct.new(security_question_answer: 'blue')
+    resource = Struct.new(:security_question_answer).new('blue')
 
     assert @helper.valid_captcha_or_security_question?(resource, { security_question_answer: 'blue' })
   end
 
   test 'valid_captcha_or_security_question? returns false when nothing matches' do
-    resource = OpenStruct.new(security_question_answer: 'blue')
+    resource = Struct.new(:security_question_answer).new('blue')
 
     assert_not @helper.valid_captcha_or_security_question?(resource, { security_question_answer: 'red' })
   end
 
   test 'valid_captcha_or_security_question? returns false when answer is blank' do
-    resource = OpenStruct.new(security_question_answer: nil)
+    resource = Struct.new(:security_question_answer).new(nil)
 
     assert_not @helper.valid_captcha_or_security_question?(resource, { security_question_answer: nil })
   end
