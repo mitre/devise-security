@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
   ]
   s.metadata = {
     'bug_tracker_uri' => 'https://github.com/devise-security/devise-security/issues',
-    'changelog_uri' => 'https://github.com/devise-security/devise-security/releases',
+    'changelog_uri' => 'https://github.com/devise-security/devise-security/blob/main/CHANGELOG.md',
     'rubygems_mfa_required' => 'true'
   }
 

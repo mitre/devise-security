@@ -5,12 +5,26 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
   workflow_dispatch:
   schedule:
     # 00:00 on the 1st of every month
     - cron: '0 0 1 * *'
 
 jobs:
+  changelog:
+    name: Changelog
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dangoslen/changelog-enforcer@v3
+        with:
+          changeLogPath: CHANGELOG.md
+          skipLabels: ":arrow_up: dependencies,skip-changelog"
+          missingUpdateErrorMessage: >
+            Please update CHANGELOG.md with your changes under the [Unreleased] section.
+
   rubocop:
     name: RuboCop
     runs-on: ubuntu-latest
