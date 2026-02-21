@@ -8,7 +8,7 @@ A [Devise](https://github.com/heartcombo/devise) extension to add additional
 security features required by modern web applications. Forked from
 [Devise Security Extension](https://github.com/phatworx/devise_security_extension)
 
-It is composed of 7 additional Devise modules:
+It is composed of 8 additional Devise modules:
 
 - `:password_expirable` - passwords will expire after a configured time (and
   will need to be changed by the user). You will most likely want to use
@@ -61,7 +61,25 @@ the initializer you are ready to add Devise Security modules on top of Devise
 modules to any of your Devise models:
 
 ```ruby
-devise :password_expirable, :secure_validatable, :password_archivable, :session_limitable, :expirable
+devise :password_expirable, :secure_validatable, :password_archivable, :session_limitable, :session_traceable, :expirable
+```
+
+You can also generate migrations for individual modules:
+
+```console
+rails generate devise_security:session_limitable
+rails generate devise_security:session_traceable
+rails generate devise_security:password_expirable
+rails generate devise_security:password_archivable
+rails generate devise_security:expirable
+rails generate devise_security:paranoid_verification
+rails generate devise_security:security_questionable
+```
+
+Each generator accepts an optional model name (defaults to `user`):
+
+```console
+rails generate devise_security:session_limitable admin
 ```
 
 ### E-mail Validation
@@ -179,7 +197,55 @@ Devise.setup do |config|
 
   # paranoid_verification will regenerate verification code after failed attempt
   # config.paranoid_code_regenerate_after_attempt = 10
+
+  # ==> Configuration for :session_limitable
+  # Maximum number of concurrent sessions per user (default: 1)
+  # config.max_active_sessions = 1
+
+  # ==> Configuration for :session_traceable
+  # Verify IP address matches the session's original IP (default: false)
+  # config.session_ip_verification = false
+
+  # ==> Configuration for :expirable
+  # Minimum interval between last_activity_at DB writes (default: nil, no throttle)
+  # Reduces DB writes on high-frequency authenticated requests.
+  # config.last_activity_update_interval = nil
+
+  # ==> Configuration for :password_archivable
+  # Deny old passwords within a time period instead of by count (default: nil)
+  # config.deny_old_passwords_period = nil
+
+  # ==> Configuration for :secure_validatable
+  # Require current password when changing email (default: false)
+  # config.require_password_on_email_change = false
 end
+```
+
+## Dynamic per-record configuration
+
+All module configs can be overridden on a per-record basis by defining instance
+methods on your model. This allows dynamic behavior based on user attributes:
+
+```ruby
+class User < ApplicationRecord
+  devise :expirable, :session_limitable
+
+  # Admins get longer expiry
+  def expire_after
+    admin? ? 1.year : 90.days
+  end
+
+  # Admins can have more sessions
+  def max_active_sessions
+    admin? ? 5 : 1
+  end
+end
+```
+
+Proc values are also supported for class-level configs:
+
+```ruby
+config.max_active_sessions = ->(user) { user.admin? ? 5 : 1 }
 ```
 
 ## Other ORMs
@@ -298,6 +364,21 @@ For such cases the following can be used:
 
 ```ruby
 sign_in(User.find(params[:id]), scope: :user, skip_session_limitable: true)
+```
+
+### Session traceable
+
+```ruby
+create_table :session_histories do |t|
+  t.string :token, null: false, index: { unique: true }
+  t.inet :ip_address, index: true          # use t.string for non-PostgreSQL
+  t.string :user_agent
+  t.datetime :last_accessed_at, null: false, index: true
+  t.boolean :active, default: true, null: false, index: true
+  t.belongs_to :owner, polymorphic: true, null: false, index: true
+
+  t.timestamps null: false
+end
 ```
 
 ### Expirable
