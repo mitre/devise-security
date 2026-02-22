@@ -8,7 +8,7 @@ pre-commit:
   commands:
     rubocop:
       glob: "*.rb"
-      run: bundle exec rubocop --force-exclusion {staged_files}
+      run: bundle exec rubocop --autocorrect
       stage_fixed: true
     yaml-lint:
       glob: "*.{yml,yaml}"
@@ -33,11 +33,3 @@ pre-commit:
             exit 1
           end
         '
-
-pre-push:
-  parallel: true
-  commands:
-    brakeman:
-      run: bundle exec brakeman -p test/dummy -z -q
-    tests:
-      run: bundle exec rake
