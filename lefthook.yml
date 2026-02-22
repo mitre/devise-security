@@ -1,0 +1,43 @@
+# Lefthook — git hooks manager
+# Install: brew install lefthook OR gem install lefthook
+# Setup:   lefthook install
+# Docs:    https://github.com/evilmartians/lefthook
+
+pre-commit:
+  parallel: true
+  commands:
+    rubocop:
+      glob: "*.rb"
+      run: bundle exec rubocop --force-exclusion {staged_files}
+      stage_fixed: true
+    yaml-lint:
+      glob: "*.{yml,yaml}"
+      run: >
+        ruby -ryaml -e '
+          ARGV.each do |f|
+            begin
+              YAML.load_file(f, aliases: true)
+            rescue => e
+              warn "#{f}: #{e.message}"
+              exit 1
+            end
+          end
+        ' {staged_files}
+    changelog:
+      glob: "CHANGELOG.md"
+      run: >
+        ruby -e '
+          content = File.read("CHANGELOG.md")
+          unless content.include?("[Unreleased]")
+            warn "CHANGELOG.md missing [Unreleased] section"
+            exit 1
+          end
+        '
+
+pre-push:
+  parallel: true
+  commands:
+    brakeman:
+      run: bundle exec brakeman -p test/dummy -z -q
+    tests:
+      run: bundle exec rake
