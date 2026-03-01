@@ -18,7 +18,7 @@ module Devise
     module SecureValidatable
       include Devise::Models::Compatibility
 
-      def self.included(base)
+      def self.included(base) # rubocop:disable Metrics/AbcSize
         base.extend ClassMethods
         assert_secure_validations_api!(base)
 
@@ -27,11 +27,11 @@ module Devise
 
           # validate login in a strict way if not yet validated
           unless uniqueness_validation_of_login?
-            validation_condition = "#{login_attribute}_changed?".to_sym
+            validation_condition = :"#{login_attribute}_changed?"
 
             validates login_attribute, uniqueness: {
-                                         scope: authentication_keys[1..-1],
-                                         case_sensitive: !!case_insensitive_keys
+                                         scope: authentication_keys[1..],
+                                         case_sensitive: !case_insensitive_keys.nil?
                                        },
                                        if: validation_condition
 
@@ -40,7 +40,7 @@ module Devise
 
           unless devise_validation_enabled?
             validates :email, presence: true, if: :email_required?
-            validates :email, uniqueness: true, allow_blank: true, if: :email_changed? && :validate_email_uniqueness? unless already_validated_email
+            validates :email, uniqueness: true, allow_blank: true, if: :validate_email_uniqueness? unless already_validated_email
 
             validates_presence_of :password, if: :password_required?
             validates_confirmation_of :password, if: :password_required?

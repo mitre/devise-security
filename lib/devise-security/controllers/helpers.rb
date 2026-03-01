@@ -18,9 +18,6 @@ module DeviseSecurity
       end
 
       module RecoverPasswordCaptcha
-        def new
-          super
-        end
       end
 
       def valid_captcha_or_security_question?(resource, params)

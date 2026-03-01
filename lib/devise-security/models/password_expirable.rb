@@ -21,7 +21,7 @@ module Devise::Models
       scope :with_password_change_requested, -> { where(password_changed_at: nil) }
       scope :without_password_change_requested, -> { where.not(password_changed_at: nil) }
       scope :with_expired_password, -> { where('password_changed_at is NULL OR password_changed_at < ?', expire_password_after.seconds.ago) }
-      scope :without_expired_password, -> { without_password_change_requested.where('password_changed_at >= ?', expire_password_after.seconds.ago) }
+      scope :without_expired_password, -> { without_password_change_requested.where(password_changed_at: expire_password_after.seconds.ago..) }
       before_save :update_password_changed
     end
 
@@ -65,9 +65,7 @@ module Devise::Models
     # @return [Integer] number of seconds passwords are valid for
     # @return [true] passwords are expired 'on demand' only.
     # @return [false] passwords never expire (this feature is disabled)
-    def expire_password_after
-      self.class.expire_password_after
-    end
+    delegate :expire_password_after, to: :class
 
     # When +password_changed_at+ is set to +NULL+ in the database
     # the user is required to change their password.  This only happens

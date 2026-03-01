@@ -8,12 +8,12 @@ Warden::Manager.after_set_user except: :fetch do |record, warden, options|
      warden.authenticated?(options[:scope]) &&
      !record.skip_session_limitable?
 
-    if !options[:skip_session_limitable]
+    if options[:skip_session_limitable]
+      warden.session(options[:scope])['devise.skip_session_limitable'] = true
+    else
       unique_session_id = Devise.friendly_token
       warden.session(options[:scope])['unique_session_id'] = unique_session_id
       record.update_unique_session_id!(unique_session_id)
-    else
-      warden.session(options[:scope])['devise.skip_session_limitable'] = true
     end
   end
 end
@@ -27,26 +27,24 @@ Warden::Manager.after_set_user only: :fetch do |record, warden, options|
 
   if record.devise_modules.include?(:session_limitable) &&
      warden.authenticated?(scope) &&
-     options[:store] != false
-    if record.unique_session_id != warden.session(scope)['unique_session_id'] &&
-       !record.skip_session_limitable? &&
-       !warden.session(scope)['devise.skip_session_limitable']
-      Rails.logger.warn do
-        '[devise-security][session_limitable] session id mismatch: '\
-        "expected=#{record.unique_session_id.inspect} "\
+     options[:store] != false && record.unique_session_id != warden.session(scope)['unique_session_id'] &&
+     !record.skip_session_limitable? &&
+     !warden.session(scope)['devise.skip_session_limitable']
+    Rails.logger.warn do
+      '[devise-security][session_limitable] session id mismatch: ' \
+        "expected=#{record.unique_session_id.inspect} " \
         "actual=#{warden.session(scope)['unique_session_id'].inspect}"
-      end
-      warden.raw_session.clear
-      warden.logout(scope)
-      throw :warden, scope: scope, message: :session_limited
     end
+    warden.raw_session.clear
+    warden.logout(scope)
+    throw :warden, scope: scope, message: :session_limited
   end
 end
 
 # When a user is signing out intentionally, we clear the unique session id
 # to prevent session replay attacks. This ensures there are 0 valid active
 # sessions immediately after signing out.
-Warden::Manager.before_logout do |record, warden, options|
+Warden::Manager.before_logout do |record, _warden, _options|
   if record.nil? == false &&
      record.devise_modules&.include?(:session_limitable) &&
      !record.skip_session_limitable?

@@ -55,13 +55,9 @@ module Devise
         end
       end
 
-      def deny_old_passwords
-        self.class.deny_old_passwords
-      end
+      delegate :deny_old_passwords, to: :class
 
-      def deny_old_passwords=(count)
-        self.class.deny_old_passwords = count
-      end
+      delegate :deny_old_passwords=, to: :class
 
       def archive_count
         self.class.password_archiving_count
@@ -74,7 +70,7 @@ module Devise
       #   mongoid will keep re-triggering this callback when we add an old password
       def archive_password
         if max_old_passwords.positive?
-          return true if old_passwords.where(encrypted_password: encrypted_password_was).exists?
+          return true if old_passwords.exists?(encrypted_password: encrypted_password_was)
 
           old_passwords.create!(encrypted_password: encrypted_password_was) if encrypted_password_was.present?
           old_passwords.reorder(created_at: :desc).offset(max_old_passwords).destroy_all

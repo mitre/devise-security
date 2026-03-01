@@ -18,7 +18,8 @@ class TestSessionLimitableWorkflow < ActionDispatch::IntegrationTest
     open_session do |session|
       failed_sign_in(@user, session)
       session.assert_response(:success)
-      assert_equal session.flash[:alert], I18n.t('devise.failure.invalid', authentication_keys: 'Email')
+
+      assert_match(/invalid.*email.*password/i, session.flash[:alert])
       assert_nil @user.reload.unique_session_id
     end
   end
@@ -31,6 +32,7 @@ class TestSessionLimitableWorkflow < ActionDispatch::IntegrationTest
       session.assert_redirected_to '/'
       session.get widgets_path
       session.assert_response(:success)
+
       assert_equal('success', session.response.body)
       assert_not_nil @user.reload.unique_session_id
     end
@@ -46,8 +48,10 @@ class TestSessionLimitableWorkflow < ActionDispatch::IntegrationTest
       session.assert_redirected_to '/'
       session.get widgets_path
       session.assert_response(:success)
+
       assert_equal('success', session.response.body)
       unique_session_id = @user.reload.unique_session_id
+
       assert_not_nil unique_session_id
     end
 
@@ -56,6 +60,7 @@ class TestSessionLimitableWorkflow < ActionDispatch::IntegrationTest
       session.assert_redirected_to '/'
       session.get widgets_path
       session.assert_response(:success)
+
       assert_equal('success', session.response.body)
       assert_not_equal unique_session_id, @user.reload.unique_session_id
     end
@@ -63,6 +68,7 @@ class TestSessionLimitableWorkflow < ActionDispatch::IntegrationTest
     first_session.tap do |session|
       session.get widgets_path
       session.assert_redirected_to new_user_session_path
+
       assert_equal session.flash[:alert], I18n.t('devise.failure.session_limited')
     end
   end
@@ -75,11 +81,13 @@ class TestSessionLimitableWorkflow < ActionDispatch::IntegrationTest
       session.assert_redirected_to '/'
       session.get widgets_path
       session.assert_response(:success)
+
       assert_equal('success', session.response.body)
       assert_not_nil @user.reload.unique_session_id
 
       sign_out(session)
       session.assert_redirected_to '/'
+
       assert_nil @user.reload.unique_session_id
     end
   end

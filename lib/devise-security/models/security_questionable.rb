@@ -16,7 +16,7 @@ module Devise
       extend ActiveSupport::Concern
 
       def self.required_fields(_klass)
-        [:security_question_id, :security_question_answer]
+        %i[security_question_id security_question_answer]
       end
     end
   end
