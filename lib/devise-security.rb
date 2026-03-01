@@ -90,7 +90,7 @@ module Devise
   mattr_accessor :allow_passwords_equal_to_email
   @@allow_passwords_equal_to_email = false
 
-  # Range or Integer for password length validation in :secure_validatable
+  # Configurable password length range for secure_validatable
   mattr_accessor :password_length
   @@password_length = 8..128
 
