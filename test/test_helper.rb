@@ -48,4 +48,4 @@ Rails::Controller::Testing.install
 
 # Add support to load paths so we can overwrite broken test setup
 $LOAD_PATH.unshift File.expand_path('support', __dir__)
-Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].sort.each { |f| require f }
+Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each { |f| require f }

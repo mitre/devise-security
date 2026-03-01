@@ -21,15 +21,15 @@ module Devise
       extend ActiveSupport::Concern
 
       def self.required_fields(_klass)
-        [:last_activity_at, :expired_at]
+        %i[last_activity_at expired_at]
       end
 
       # Updates +last_activity_at+, called from a Warden::Manager.after_set_user hook.
       def update_last_activity!
-        if respond_to?(:update_column)
-          self.update_column(:last_activity_at, Time.now.utc)
+        if respond_to?(:update_columns)
+          update_columns(last_activity_at: Time.now.utc) # rubocop:disable Rails/SkipsModelValidations -- intentional: skip validation for performance on activity tracking
         elsif defined? Mongoid
-          self.update_attribute(:last_activity_at, Time.now.utc)
+          set(last_activity_at: Time.now.utc)
         end
       end
 
@@ -70,7 +70,7 @@ module Devise
       # The message sym, if {#active_for_authentication?} returns +false+. E.g. needed
       # for i18n.
       def inactive_message
-        !expired? ? super : :expired
+        expired? ? :expired : super
       end
 
       module ClassMethods
@@ -90,7 +90,7 @@ module Devise
 
         # Scope method to collect all expired users since +time+ ago
         def expired_for(time = delete_expired_after)
-          where('expired_at < ?', time.seconds.ago)
+          where(expired_at: ...time.seconds.ago)
         end
 
         # Sample method for daily cron to delete all expired entries after a
