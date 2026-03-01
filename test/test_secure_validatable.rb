@@ -314,6 +314,12 @@ class TestSecureValidatable < ActiveSupport::TestCase
     )
   end
 
+  test 'validate_email_uniqueness? returns true by default' do
+    user = build(:user)
+
+    assert_predicate user, :validate_email_uniqueness?
+  end
+
   test 'should not be included in objects with invalid API' do
     error = assert_raise RuntimeError do
       class ::Dog; include Devise::Models::SecureValidatable; end

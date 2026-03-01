@@ -89,6 +89,14 @@ module Devise
   # Whether to allow passwords that are equal (case insensitive) to the email
   mattr_accessor :allow_passwords_equal_to_email
   @@allow_passwords_equal_to_email = false
+
+  # Range or Integer for password length validation in :secure_validatable
+  mattr_accessor :password_length
+  @@password_length = 8..128
+
+  # Whether to require current password when changing email
+  mattr_accessor :require_password_on_email_change
+  @@require_password_on_email_change = false
 end
 
 # a security extension for devise

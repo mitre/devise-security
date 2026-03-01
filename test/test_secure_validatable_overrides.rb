@@ -18,7 +18,7 @@ class TestSecureValidatableOverrides < ActiveSupport::TestCase
     end
   end
 
-  class User < ApplicationRecord
+  class User < ApplicationUserRecord
     devise :database_authenticatable, :secure_validatable
     include ::Mongoid::Mappings if DEVISE_ORM == :mongoid
   end

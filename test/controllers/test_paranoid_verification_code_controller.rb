@@ -8,13 +8,10 @@ class Devise::ParanoidVerificationCodeControllerTest < ActionController::TestCas
   setup do
     @controller.class.respond_to :json, :xml
     @request.env['devise.mapping'] = Devise.mappings[:user]
-    @user = User.create!(
-      username: 'hello',
-      email: generate_unique_email,
-      password: 'Password4',
-      confirmed_at: 5.months.ago,
-      paranoid_verification_code: 'cookies'
-    )
+    @user = create_user({
+                          confirmed_at: 5.months.ago,
+                          paranoid_verification_code: 'cookies'
+                        })
 
     assert_predicate @user, :valid?
     assert_predicate @user, :need_paranoid_verification?
@@ -55,6 +52,22 @@ class Devise::ParanoidVerificationCodeControllerTest < ActionController::TestCas
     patch :update
 
     assert_redirected_to :root
+  end
+
+  test 'update with wrong code re-renders show with error' do
+    patch(
+      :update,
+      params: {
+        user: {
+          paranoid_verification_code: 'wrong_code'
+        }
+      }
+    )
+
+    assert_nil flash[:notice]
+    assert_predicate @user.reload, :need_paranoid_verification?
+    assert_template :show
+    assert_predicate assigns(:user).errors[:paranoid_verification_code], :any?
   end
 
   test 'update paranoid_verification_code with default format' do
@@ -113,13 +126,10 @@ class ParanoidVerificationCodeCustomRedirectTest < ActionController::TestCase
   setup do
     @controller.class.respond_to :json, :xml
     @request.env['devise.mapping'] = Devise.mappings[:paranoid_verification_user]
-    @user = ParanoidVerificationUser.create!(
-      username: 'hello',
-      email: generate_unique_email,
-      password: 'Password4',
-      confirmed_at: 5.months.ago,
-      paranoid_verification_code: 'cookies'
-    )
+    @user = create_user({
+                          confirmed_at: 5.months.ago,
+                          paranoid_verification_code: 'cookies'
+                        }, ParanoidVerificationUser)
 
     assert_predicate @user, :valid?
     assert_predicate @user, :need_paranoid_verification?

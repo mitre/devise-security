@@ -19,7 +19,7 @@ class TestSessionLimitableWorkflow < ActionDispatch::IntegrationTest
       failed_sign_in(@user, session)
       session.assert_response(:success)
 
-      assert_match(/invalid.*email.*password/i, session.flash[:alert])
+      assert_equal session.flash[:alert], I18n.t('devise.failure.invalid', authentication_keys: 'email')
       assert_nil @user.reload.unique_session_id
     end
   end
