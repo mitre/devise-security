@@ -54,6 +54,10 @@ Devise.setup do |config|
   # Maximum number of concurrent sessions per user
   # config.max_active_sessions = 1
 
+  # ==> Configuration for :session_traceable
+  # Verify IP address matches the session's original IP
+  # config.session_ip_verification = false
+
   # ==> Configuration for :expirable
   # Minimum interval between last_activity_at DB writes.
   # Reduces DB load on high-frequency authenticated requests.

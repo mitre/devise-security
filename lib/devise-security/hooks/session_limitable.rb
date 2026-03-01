@@ -3,7 +3,7 @@
 # Warden hooks for the +SessionLimitable+ module.
 #
 # Enforces that only one active session exists per user at a time (or up to
-# +max_active_sessions+).
+# +max_active_sessions+ when combined with +SessionTraceable+).
 #
 # Lifecycle:
 # 1. *Login* — assigns a +unique_session_id+ to the user and stores it in
@@ -13,8 +13,9 @@
 #    superseded this one, so the old session is logged out.
 # 3. *Logout* — clears the +unique_session_id+ to prevent session replay.
 #
-# Skipped when the record returns +true+ from +skip_session_limitable?+,
-# or when the request env contains <tt>devise.skip_session_limitable</tt>.
+# Skipped when +session_traceable+ is included (traceable hooks take over),
+# when the record returns +true+ from +skip_session_limitable?+, or when
+# the request env contains <tt>devise.skip_session_limitable</tt>.
 #
 # @see Devise::Models::SessionLimitable
 
@@ -22,7 +23,8 @@
 # Only triggered on explicit authentication, not on session fetch.
 Warden::Manager.after_set_user except: :fetch do |record, warden, options|
   scope = options[:scope]
-  if record.devise_modules.include?(:session_limitable) &&
+  if record.devise_modules.exclude?(:session_traceable) &&
+     record.devise_modules.include?(:session_limitable) &&
      warden.authenticated?(scope) &&
      !record.skip_session_limitable? &&
      !warden.request.env['devise.skip_session_limitable']
@@ -39,7 +41,8 @@ end
 Warden::Manager.after_set_user only: :fetch do |record, warden, options|
   scope = options[:scope]
 
-  if record.devise_modules.include?(:session_limitable) &&
+  if record.devise_modules.exclude?(:session_traceable) &&
+     record.devise_modules.include?(:session_limitable) &&
      warden.authenticated?(scope) &&
      options[:store] != false && record.unique_session_id != warden.session(scope)['unique_session_id'] &&
      !record.skip_session_limitable? &&

@@ -38,6 +38,14 @@ module ActiveSupport
       create(factory_name, **valid_attributes(attributes))
     end
 
+    def create_traceable_user(attributes = {})
+      create_user(attributes, TraceableUser)
+    end
+
+    def create_traceable_user_with_limit(attributes = {})
+      create_user(attributes, TraceableUserWithLimit)
+    end
+
     # Execute the block setting the given values and restoring old values after
     # the block is executed.
     def swap(object, new_values)
