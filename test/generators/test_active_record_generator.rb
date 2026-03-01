@@ -10,7 +10,7 @@ if DEVISE_ORM == :active_record
     destination File.expand_path('../dummy/tmp', __dir__)
     setup :prepare_destination
 
-    test 'all files are properly created with migration syntax' do
+    test 'runs without raising' do
       assert_nothing_raised { run_generator }
     end
   end

@@ -3,12 +3,8 @@
 require 'test_helper'
 
 class TestSessionLimitableWorkflow < ActionDispatch::IntegrationTest
-  include IntegrationHelpers
-
   setup do
-    @user = User.create!(password: 'passWord1',
-                         password_confirmation: 'passWord1',
-                         email: generate_unique_email)
+    @user = create_user
     @user.confirm
   end
 
@@ -85,7 +81,7 @@ class TestSessionLimitableWorkflow < ActionDispatch::IntegrationTest
       assert_equal('success', session.response.body)
       assert_not_nil @user.reload.unique_session_id
 
-      sign_out(session)
+      sign_out(@user, session)
       session.assert_redirected_to '/'
 
       assert_nil @user.reload.unique_session_id
