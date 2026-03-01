@@ -37,6 +37,6 @@ module IntegrationHelpers
   # @param session [ActionDispatch::Integration::Session]
   # @return [void]
   def sign_out(session = integration_session)
-    session.delete(destroy_user_session_path)
+    session.get(destroy_user_session_path)
   end
 end
