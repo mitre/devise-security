@@ -30,6 +30,7 @@ SimpleCov.start do
   add_group 'Secure Validateable', 'secure_validatable'
   add_group 'Security Questionable', 'security_question'
   add_group 'Session Limitable', 'session_limitable'
+  add_group 'Session Traceable', 'session_traceable'
   add_group 'Tests', 'test'
 end
 

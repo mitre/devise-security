@@ -12,8 +12,11 @@ module ActiveRecord
       source_root File.expand_path('templates', __dir__)
 
       def create_migration_file
-        # No standalone migrations needed; use per-module generators instead.
-        # e.g., rails generate devise_security:session_limitable
+        add_devise_security_migration 'create_session_histories'
+      end
+
+      def postgresql?
+        ar_config && ar_config['adapter'] == 'postgresql'
       end
     end
   end

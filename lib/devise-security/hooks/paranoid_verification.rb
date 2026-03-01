@@ -7,7 +7,7 @@
 #
 # Uses +devise_modules.include?(:paranoid_verification)+ to guard against
 # models that do not include the module (consistent with
-# session_limitable).
+# session_limitable/session_traceable).
 #
 # @see Devise::Models::ParanoidVerification
 Warden::Manager.after_set_user do |record, warden, options|
