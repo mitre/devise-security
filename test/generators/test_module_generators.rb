@@ -41,6 +41,30 @@ if DEVISE_ORM == :active_record
     end
   end
 
+  class TestSessionTraceableGenerator < Rails::Generators::TestCase
+    tests DeviseSecurity::Generators::SessionTraceableGenerator
+    destination File.expand_path('../dummy/tmp', __dir__)
+    setup :prepare_destination
+
+    test 'creates session_histories table migration' do
+      run_generator
+      assert_migration 'db/migrate/create_session_histories.rb' do |migration|
+        assert_match(/create_table :session_histories/, migration)
+        assert_match(/t.string :token, null: false/, migration)
+        assert_match(/t\.(string|inet) :ip_address/, migration)
+        assert_match(/t.string :user_agent/, migration)
+        assert_match(/t.datetime :last_accessed_at, null: false/, migration)
+        assert_match(/t.boolean :active, default: true, null: false/, migration)
+        assert_match(/t.belongs_to :owner, polymorphic: true/, migration)
+      end
+    end
+
+    test 'is idempotent' do
+      run_generator
+      assert_nothing_raised { run_generator }
+    end
+  end
+
   class TestPasswordExpirableGenerator < Rails::Generators::TestCase
     tests DeviseSecurity::Generators::PasswordExpirableGenerator
     destination File.expand_path('../dummy/tmp', __dir__)

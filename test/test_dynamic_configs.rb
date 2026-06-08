@@ -31,6 +31,14 @@ class TestDynamicConfigs < ActiveSupport::TestCase
     assert_equal User.reject_sessions, user.reject_sessions
   end
 
+  # ── SessionTraceable ─────────────────────────────────────────
+
+  test 'SessionTraceable: session_ip_verification instance method delegates to class config' do
+    user = build(:traceable_user)
+
+    assert_equal TraceableUser.session_ip_verification, user.session_ip_verification
+  end
+
   # ── Expirable ──────────────────────────────────────────────────
 
   test 'Expirable: expire_after instance method delegates to class config' do

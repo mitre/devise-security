@@ -19,8 +19,8 @@ module DeviseSecurity
     #   end
     #
     # @example Subclass for a module that creates a table
-    #   class PasswordArchivableGenerator < ModuleMigrationGenerator
-    #     table :old_passwords, 'create_old_passwords'
+    #   class SessionTraceableGenerator < ModuleMigrationGenerator
+    #     table :session_histories, 'create_session_histories'
     #   end
     #
     # @see DeviseSecurity::MigrationGenerator
@@ -122,6 +122,15 @@ module DeviseSecurity
       columns [
         { name: :unique_session_id, type: :string }
       ]
+    end
+
+    # Creates the +session_histories+ table for session tracking.
+    # @example
+    #   rails generate devise_security:session_traceable
+    class SessionTraceableGenerator < ModuleMigrationGenerator
+      source_root File.expand_path('../active_record/templates', __dir__)
+
+      table :session_histories, 'create_session_histories'
     end
 
     # Adds +password_changed_at+ column to the model's table.

@@ -11,6 +11,8 @@ module Devise
     # The first one is redirected to the sign page with a message, telling that
     # someone used his credentials to sign in.
     #
+    # When used together with +:session_traceable+, supports configurable
+    # +max_active_sessions+ and automatic eviction of the oldest session.
     module SessionLimitable
       extend ActiveSupport::Concern
       include Devise::Models::Compatibility
@@ -34,43 +36,78 @@ module Devise
       end
 
       # Check whether the user is allowed to authenticate based on active session count.
-      # Always returns +true+ (original behavior). Reserved for future session tracking.
+      # When +session_traceable+ is not included, always returns +true+ (original behavior).
+      # When +session_traceable+ is included, checks active sessions against +max_active_sessions+.
       #
       # @return [Boolean] true if authentication should be allowed
       def allow_limitable_authentication?
-        true
+        return true unless devise_modules.include?(:session_traceable)
+
+        active_count = session_histories.where(active: true).count
+        return true if active_count < max_active_sessions
+
+        # At capacity — try to make room
+        if reject_sessions?
+          deactivate_expired_sessions!
+        else
+          evict_oldest_session!
+        end
       end
 
       # Evict the oldest active session to make room for a new one.
-      # Reserved for future session tracking.
       #
-      # @return [Boolean] false (no-op without session tracking)
+      # @return [Boolean] true if a session was evicted, false otherwise
       def evict_oldest_session!
-        false
+        return false unless devise_modules.include?(:session_traceable)
+
+        oldest = session_histories.where(active: true).order(last_accessed_at: :asc).first
+        return false unless oldest
+
+        oldest.update_attribute_without_validatons_or_callbacks(:active, false)
+        true
       end
 
       # Deactivate sessions that have timed out based on +timeout_in+.
-      # Reserved for future session tracking.
       #
-      # @return [Boolean] true (no-op without session tracking)
+      # @return [Boolean] true if any sessions were deactivated
       def deactivate_expired_sessions!
+        return true unless devise_modules.include?(:session_traceable)
+        return false unless timeout_in
+
+        cutoff = timeout_in.ago
+        expired = session_histories.where(active: true)
+                                   .where(last_accessed_at: ..cutoff)
+        return false if expired.none?
+
+        expired.each do |session|
+          session.update_attribute_without_validatons_or_callbacks(:active, false)
+        end
         true
       end
 
       # Maximum number of active sessions allowed.
-      # Returns 1 (original behavior). Reserved for future session tracking.
+      # Without +session_traceable+, always returns 1 (original behavior).
+      # Supports +Proc+ values — resolved via +instance_exec+ so the Proc
+      # can reference instance state (e.g., +admin?+).
       #
       # @return [Integer]
       def max_active_sessions
-        1
+        return 1 unless devise_modules.include?(:session_traceable)
+
+        value = self.class.max_active_sessions
+        value.is_a?(Proc) ? instance_exec(&value) : value
       end
 
       # Whether to reject new sessions when at capacity (vs evicting oldest).
-      # Returns false (original behavior). Reserved for future session tracking.
+      # Without +session_traceable+, always returns false.
+      # Supports +Proc+ values — resolved via +instance_exec+.
       #
       # @return [Boolean]
       def reject_sessions
-        false
+        return false unless devise_modules.include?(:session_traceable)
+
+        value = self.class.reject_sessions
+        value.is_a?(Proc) ? instance_exec(&value) : value
       end
       alias reject_sessions? reject_sessions
 

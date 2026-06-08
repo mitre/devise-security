@@ -10,6 +10,18 @@ FactoryBot.define do
     password { 'Password1' }
   end
 
+  factory :traceable_user, class: 'TraceableUser' do
+    email { generate(:email) }
+    username { generate(:username) }
+    password { 'Password1' }
+  end
+
+  factory :traceable_user_with_limit, class: 'TraceableUserWithLimit' do
+    email { generate(:email) }
+    username { generate(:username) }
+    password { 'Password1' }
+  end
+
   factory :paranoid_verification_user, class: 'ParanoidVerificationUser' do
     email { generate(:email) }
     username { generate(:username) }

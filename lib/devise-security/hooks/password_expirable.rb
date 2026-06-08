@@ -6,7 +6,7 @@
 # and stores the result in the Warden session for the controller to act on.
 #
 # Uses +devise_modules.include?(:password_expirable)+ to guard against models
-# that do not include the module (consistent with session_limitable).
+# that do not include the module (consistent with session_limitable/session_traceable).
 #
 # @see Devise::Models::PasswordExpirable
 # @see DeviseSecurity::Controllers::Helpers#handle_password_change

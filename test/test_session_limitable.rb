@@ -82,19 +82,19 @@ class TestSessionLimitable < ActiveSupport::TestCase
     assert_raises(Devise::Models::Compatibility::NotPersistedError) { user.update_unique_session_id!('unique_value') }
   end
 
-  test '#allow_limitable_authentication? returns true' do
+  test '#allow_limitable_authentication? returns true without session_traceable' do
     user = new_user
 
     assert_predicate user, :allow_limitable_authentication?
   end
 
-  test '#deactivate_expired_sessions! returns true' do
+  test '#deactivate_expired_sessions! returns true without session_traceable' do
     user = new_user
 
     assert user.deactivate_expired_sessions!
   end
 
-  test '#max_active_sessions returns 1 regardless of config' do
+  test '#max_active_sessions returns 1 without session_traceable regardless of config' do
     swap Devise, max_active_sessions: 10 do
       user = new_user
 
@@ -102,7 +102,7 @@ class TestSessionLimitable < ActiveSupport::TestCase
     end
   end
 
-  test '#reject_sessions? returns false regardless of config' do
+  test '#reject_sessions? returns false without session_traceable regardless of config' do
     swap Devise, reject_sessions: true do
       user = new_user
 
@@ -110,9 +110,94 @@ class TestSessionLimitable < ActiveSupport::TestCase
     end
   end
 
-  test '#evict_oldest_session! returns false' do
+  test '#evict_oldest_session! returns false without session_traceable' do
     user = new_user
 
     assert_not user.evict_oldest_session!
+  end
+end
+
+class TestSessionLimitableWithTraceable < ActiveSupport::TestCase
+  include ActiveSupport::Testing::TimeHelpers
+
+  def default_options
+    @default_options ||= { ip_address: generate_ip_address, user_agent: 'UA' }
+  end
+
+  test 'allow authentication when within max' do
+    swap Devise, max_active_sessions: 2 do
+      user = create_traceable_user_with_limit
+      user.log_traceable_session!(default_options)
+
+      assert_predicate user, :allow_limitable_authentication?
+    end
+  end
+
+  test 'deactivates expired sessions when reject_sessions enabled' do
+    swap Devise, max_active_sessions: 1, reject_sessions: true, timeout_in: 1.second do
+      user = create_traceable_user_with_limit
+
+      freeze_time do
+        user.log_traceable_session!(default_options)
+      end
+
+      travel 2.seconds do
+        # Session is expired, should be deactivated to make room
+        assert_predicate user, :allow_limitable_authentication?
+      end
+    end
+  end
+
+  test 'evicts oldest session when not rejecting' do
+    swap Devise, max_active_sessions: 1, reject_sessions: false do
+      user = create_traceable_user_with_limit
+      user.log_traceable_session!(default_options)
+
+      assert_predicate user, :allow_limitable_authentication?
+
+      active_sessions = user.reload.session_histories.where(active: true)
+
+      assert_equal 0, active_sessions.count
+    end
+  end
+
+  test 'deactivate expired sessions based on timeout_in' do
+    timeout_in = 5.seconds
+    swap Devise, timeout_in: timeout_in, max_active_sessions: 10 do
+      user = create_traceable_user_with_limit
+
+      freeze_time do
+        user.log_traceable_session!(default_options)
+      end
+
+      travel timeout_in do
+        user.log_traceable_session!(default_options.merge(ip_address: generate_ip_address))
+      end
+
+      travel(6.seconds) do
+        user.log_traceable_session!(default_options.merge(ip_address: generate_ip_address))
+        user.deactivate_expired_sessions!
+      end
+
+      active_sessions = user.reload.session_histories.where(active: true)
+
+      assert_equal 2, active_sessions.count
+    end
+  end
+
+  test '#max_active_sessions reads config with session_traceable' do
+    swap Devise, max_active_sessions: 10 do
+      user = new_user({}, TraceableUserWithLimit)
+
+      assert_equal 10, user.max_active_sessions
+    end
+  end
+
+  test '#reject_sessions? reads config with session_traceable' do
+    swap Devise, reject_sessions: true do
+      user = new_user({}, TraceableUserWithLimit)
+
+      assert_predicate user, :reject_sessions?
+    end
   end
 end

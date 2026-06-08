@@ -10,7 +10,7 @@
 # not in this hook.
 #
 # Uses +devise_modules.include?(:expirable)+ to guard against models that
-# do not include the module (consistent with session_limitable).
+# do not include the module (consistent with session_limitable/session_traceable).
 #
 # @see Devise::Models::Expirable
 Warden::Manager.after_set_user do |record, warden, options|
