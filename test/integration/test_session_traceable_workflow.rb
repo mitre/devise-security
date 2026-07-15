@@ -133,6 +133,35 @@ class TestSessionTraceableWithLimitWorkflow < ActionDispatch::IntegrationTest
     end
   end
 
+  test 'session superseded by another login reports session_limited, not generic unauthenticated' do
+    first_session = open_session
+    second_session = open_session
+
+    first_session.tap do |session|
+      sign_in(@user, session, :traceable_user_with_limit)
+      session.get widgets_path
+      session.assert_response(:success)
+    end
+
+    # Second login evicts the first session's history row (max_active_sessions
+    # defaults to 1, reject_sessions false) without touching the first
+    # session's cookie — the signature of "signed in from another location".
+    second_session.tap do |session|
+      sign_in(@user, session, :traceable_user_with_limit)
+      session.get widgets_path
+      session.assert_response(:success)
+    end
+
+    first_session.tap do |session|
+      session.get widgets_path
+      session.assert_redirected_to new_traceable_user_with_limit_session_path
+
+      # The evicted session must be told WHY — its credentials were used in
+      # another browser — not the generic "you need to sign in" message.
+      assert_equal I18n.t('devise.failure.session_limited'), session.flash[:alert]
+    end
+  end
+
   test 'unique_session_id backward compatibility migration' do
     open_session do |session|
       scope = sign_in(@user, session, :traceable_user_with_limit)

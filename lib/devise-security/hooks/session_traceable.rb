@@ -72,8 +72,15 @@ Warden::Manager.after_set_user only: :fetch do |record, warden, options|
       session['unique_traceable_token'] = unique_traceable_token if unique_traceable_token.present?
       session.delete('unique_session_id')
     else
+      # Distinguish a superseded session (its history row exists but was
+      # deactivated by another login) from a plain missing/unknown token, so
+      # the evicted browser can be told its credentials were used elsewhere
+      # rather than the generic "you need to sign in". Read the row state
+      # BEFORE logout clears the session token.
+      token = session['unique_traceable_token']
+      message = token.present? && record.session_superseded?(token) ? :session_limited : :unauthenticated
       warden.logout(scope)
-      throw(:warden, scope: scope, message: :unauthenticated)
+      throw(:warden, scope: scope, message: message)
     end
   end
 end

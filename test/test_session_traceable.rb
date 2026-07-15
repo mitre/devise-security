@@ -107,6 +107,22 @@ class TestSessionTraceable < ActiveSupport::TestCase
       assert_operator session.last_accessed_at, :>, old_last_accessed
     end
   end
+
+  test 'session_superseded? is true only for an existing but deactivated token' do
+    user = create_traceable_user
+    token = user.log_traceable_session!(default_options)
+
+    # Active session — not superseded.
+    assert_not user.session_superseded?(token)
+
+    # Deactivated (evicted / signed-out-elsewhere) session — superseded.
+    user.expire_session_token!(token)
+
+    assert user.session_superseded?(token)
+
+    # Unknown token — not superseded (plain unauthenticated).
+    assert_not user.session_superseded?('never-issued-token')
+  end
 end
 
 class TestSessionTraceableWithLimit < ActiveSupport::TestCase

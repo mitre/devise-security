@@ -104,6 +104,19 @@ module Devise
         session_histories.where(conditions.merge(token: token)).first
       end
 
+      # Whether the given session was superseded — its history record still
+      # exists but has been deactivated by another login (a
+      # +session_limitable+ eviction) or an elsewhere sign-out. Distinct from
+      # a missing/unknown token, which is a plain unauthenticated request. Used
+      # by the fetch hook to report the true cause to the evicted browser.
+      #
+      # @param token [String]
+      # @return [Boolean]
+      def session_superseded?(token)
+        record = find_traceable_by_token(token)
+        record.present? && !record.active
+      end
+
       # Whether session tokens are restricted to the originating IP address.
       #
       # @return [Boolean] true by default
